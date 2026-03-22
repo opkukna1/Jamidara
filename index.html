@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         /* CSS Variables */
         :root {
@@ -205,27 +206,9 @@
         @media (max-width: 992px) { .hero h1 { font-size: 3.2rem; } .section-title { font-size: 2.3rem; } }
         @media (max-width: 768px) { .hero h1 { font-size: 2.8rem; } .hero-buttons { flex-direction: column; } .form-container { padding: 30px 20px; } }
     </style>
-
-        :root {
-            --primary-blue: #0A3D62;
-            --primary-green: #00b894;
-            --gradient: linear-gradient(135deg, #0A3D62, #00b894);
-            --glass-bg: rgba(255, 255, 255, 0.95);
-            --text-dark: #2d3436;
-            --text-light: #636e72;
-            --bg-light: #f5f6fa;
-            --white: #ffffff;
-            --transition: all 0.3s ease;
-        }
-
-        /* Base Styles */
-        * { 
-            margin: 0; padding: 0; box-sizing: border-box; 
-
 </head>
 <body>
 
-    <!-- Premium Navbar -->
     <nav id="navbar">
         <div class="logo"><i class="fa-solid fa-hands-bubbles"></i> Jamidara</div>
         
@@ -257,10 +240,8 @@
         </div>
     </nav>
 
-    <!-- Overlay for Mobile Menu -->
     <div class="overlay" id="menuOverlay" onclick="closeMenu()"></div>
 
-    <!-- Hero Section -->
     <header class="hero" id="home">
         <div class="hero-content">
             <div class="hero-badge">⭐ Premium Quality FMCG Products</div>
@@ -273,7 +254,6 @@
         </div>
     </header>
 
-    <!-- Original About Section -->
     <section class="about-section" id="about">
         <h2 class="section-title">About Jamidara Group</h2>
         <div class="about-content">
@@ -281,14 +261,12 @@
         </div>
     </section>
 
-    <!-- Products Section -->
     <section class="products-section" id="products">
         <h2 class="section-title">Shop Our Products</h2>
         <p class="section-subtitle">Premium formulas tested for the toughest Indian conditions.</p>
         
         <div class="product-grid">
 
-            <!-- COMBO OFFER -->
             <div class="product-card combo-card">
                 <div class="combo-badge">🔥 Best Value Combo</div>
                 <div class="img-wrapper"><img src="combo.jpg" alt="Combo Pack" class="product-img"></div>
@@ -309,7 +287,6 @@
                 </div>
             </div>
 
-            <!-- Single Products -->
             <div class="product-card">
                 <div class="img-wrapper"><img src="detergent-powder.jpg" alt="Detergent Powder" class="product-img"></div>
                 <div class="product-info">
@@ -502,7 +479,7 @@
     <script>
         const WHATSAPP_NUMBER = "916377856641"; 
 
-        // Premium Mobile Menu Logic (Fixed blur & click issues)
+        // Premium Mobile Menu Logic
         const menuToggle = document.getElementById('menuToggle');
         const navLinks = document.getElementById('navLinks');
         const menuOverlay = document.getElementById('menuOverlay');

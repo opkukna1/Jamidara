@@ -16,7 +16,7 @@
             --primary-blue: #0A3D62;
             --primary-green: #00b894;
             --gradient: linear-gradient(135deg, #0A3D62, #00b894);
-            --glass-bg: rgba(255, 255, 255, 0.98);
+            --glass-bg: rgba(255, 255, 255, 0.95);
             --text-dark: #2d3436;
             --text-light: #636e72;
             --bg-light: #f5f6fa;
@@ -24,25 +24,34 @@
             --transition: all 0.3s ease;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; }
-        body { color: var(--text-dark); line-height: 1.7; background-color: var(--bg-light); overflow-x: hidden; }
+        /* Base Styles */
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+            font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; 
+        }
+        body { 
+            color: var(--text-dark); line-height: 1.7; background-color: var(--bg-light); 
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
         a { text-decoration: none; color: inherit; }
         ul { list-style: none; }
         section { padding: 100px 5%; }
 
+        /* Typography */
         .section-title {
             text-align: center; font-size: 2.8rem; font-weight: 800; margin-bottom: 15px;
             background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px;
         }
         .section-subtitle { text-align: center; color: var(--text-light); font-size: 1.1rem; margin-bottom: 50px; max-width: 600px; margin-left: auto; margin-right: auto; }
 
-        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 32px; border-radius: 50px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: var(--transition); border: none; gap: 10px; }
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 32px; border-radius: 50px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: var(--transition); border: none; gap: 10px; }
         .btn-primary { background: var(--gradient); color: var(--white); box-shadow: 0 10px 20px rgba(0, 184, 148, 0.2); }
         .btn-primary:hover { transform: translateY(-5px); box-shadow: 0 15px 25px rgba(0, 184, 148, 0.4); color: var(--white); }
         .btn-outline { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 2px solid var(--white); color: var(--white); }
         .btn-outline:hover { background: var(--white); color: var(--primary-blue); transform: translateY(-5px); }
 
-        /* Premium Navbar */
+        /* Navbar */
         nav {
             position: fixed; width: 100%; top: 0; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(15px);
             padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); transition: var(--transition);
@@ -51,73 +60,102 @@
         .logo i { color: var(--primary-green); }
         
         .nav-links { display: flex; align-items: center; gap: 30px; }
-        .nav-links li a { font-weight: 600; font-size: 1rem; position: relative; padding: 5px 0; }
+        .nav-links li a { font-weight: 600; font-size: 1rem; position: relative; padding: 5px 0; transition: 0.3s; }
         .nav-links li a:hover { color: var(--primary-green); }
         
-        /* Mobile Menu Setup */
+        /* Mobile Menu Setup (Fixed Blur & Click Issues) */
         .menu-toggle { display: none; font-size: 1.8rem; color: var(--primary-blue); cursor: pointer; z-index: 1002; }
         .mobile-only { display: none; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
             .menu-toggle { display: block; }
             .nav-links {
-                position: fixed; top: 0; right: -100%; width: 280px; height: 100vh;
-                background: var(--white); flex-direction: column; justify-content: flex-start;
-                padding: 100px 30px 30px; gap: 25px; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-                box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 1001; align-items: flex-start;
+                position: fixed; top: 0; right: -100%; width: 300px; height: 100vh;
+                background: #ffffff; flex-direction: column; justify-content: flex-start;
+                padding: 100px 30px 30px; gap: 20px; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+                box-shadow: -10px 0 30px rgba(0,0,0,0.15); z-index: 1001; align-items: flex-start;
             }
             .nav-links.active { right: 0; }
             .nav-links li { width: 100%; }
-            .nav-links li a { display: block; width: 100%; font-size: 1.2rem; padding: 10px 0; border-bottom: 1px solid #eee; }
-            .mobile-only { display: flex; width: 100%; margin-top: 20px; }
+            .nav-links li a { display: block; width: 100%; font-size: 1.2rem; padding: 12px 0; border-bottom: 1px solid #f0f0f0; color: var(--primary-blue); }
+            .mobile-only { display: flex; width: 100%; margin-top: 15px; }
         }
 
         /* Cart Icon */
-        .cart-icon-wrapper { position: relative; cursor: pointer; font-size: 1.4rem; color: var(--primary-blue); transition: 0.3s; margin-left: 10px; }
+        .cart-icon-wrapper { position: relative; cursor: pointer; font-size: 1.5rem; color: var(--primary-blue); transition: 0.3s; margin-left: 10px; }
         .cart-icon-wrapper:hover { transform: scale(1.1); }
         .cart-badge {
             position: absolute; top: -8px; right: -10px; background: #ff4757; color: white;
-            font-size: 0.75rem; font-weight: bold; width: 20px; height: 20px; border-radius: 50%;
+            font-size: 0.75rem; font-weight: bold; width: 22px; height: 22px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(255, 71, 87, 0.4);
         }
 
-        /* Hero */
+        /* Hero Section */
         .hero {
             height: 100vh; background: linear-gradient(rgba(10, 61, 98, 0.8), rgba(0, 184, 148, 0.7)), url('https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=1920&q=80') center/cover;
-            display: flex; align-items: center; justify-content: center; text-align: center; color: var(--white); padding: 0 5%;
+            background-attachment: fixed; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--white); padding: 0 5%;
         }
-        .hero-content { max-width: 900px; }
+        .hero-content { max-width: 900px; animation: slideUp 1s ease-out forwards; }
         .hero-badge { display: inline-block; padding: 8px 20px; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); border-radius: 50px; font-weight: 600; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.4); }
-        .hero h1 { font-size: 4rem; font-weight: 800; line-height: 1.1; margin-bottom: 25px; letter-spacing: -1px; }
-        @media(max-width: 768px){ .hero h1 { font-size: 2.8rem; } .hero-buttons { flex-direction: column; } }
+        .hero h1 { font-size: 4.5rem; font-weight: 800; line-height: 1.1; margin-bottom: 25px; letter-spacing: -2px; }
+        .hero p { font-size: 1.3rem; margin-bottom: 40px; font-weight: 400; opacity: 0.9; }
+        .hero-buttons { display: flex; gap: 20px; justify-content: center; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* About Section */
+        .about-section { background: var(--white); text-align: center; }
+        .about-content { max-width: 800px; margin: 0 auto; font-size: 1.15rem; color: var(--text-light); line-height: 1.8; }
 
         /* Products Grid */
-        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 50px; }
+        .products-section { background: var(--bg-light); }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 35px; margin-top: 50px; }
         .product-card {
             background: var(--white); border-radius: 24px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.04);
             border: 1px solid rgba(0,0,0,0.02); display: flex; flex-direction: column; position: relative; overflow: hidden;
             transition: 0.4s ease;
         }
-        .product-card:hover { transform: translateY(-8px); box-shadow: 0 20px 50px rgba(0, 184, 148, 0.15); }
+        .product-card:hover { transform: translateY(-10px); box-shadow: 0 20px 50px rgba(0, 184, 148, 0.15); }
         .img-wrapper { width: 100%; height: 260px; border-radius: 16px; overflow: hidden; background: #f8f9fa; }
         .product-img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s; }
         .product-card:hover .product-img { transform: scale(1.08); }
-        .product-info { padding: 20px 10px 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .product-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
-        .product-desc { font-size: 0.9rem; color: var(--text-light); margin-bottom: 15px; line-height: 1.5; }
-        .price-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .price-tag { font-weight: 800; color: var(--primary-green); font-size: 1.4rem; }
+        .product-info { padding: 25px 10px 10px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .product-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; color: var(--text-dark); }
+        .product-desc { font-size: 0.95rem; color: var(--text-light); margin-bottom: 20px; line-height: 1.5; }
+        .price-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .price-tag { font-weight: 800; color: var(--primary-green); font-size: 1.5rem; }
+        
         .btn-add {
             width: 100%; padding: 14px; background: var(--primary-blue); color: white; border: none; border-radius: 12px;
-            font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; gap: 8px; align-items: center;
+            font-weight: 700; font-size: 1.05rem; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; gap: 8px; align-items: center;
         }
-        .btn-add:hover { background: var(--primary-green); transform: translateY(-2px); }
+        .btn-add:hover { background: var(--primary-green); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3); }
 
         /* Combo Card Styling */
-        .combo-card { border: 2px solid #ff9f43; box-shadow: 0 15px 35px rgba(255, 159, 67, 0.15); background: linear-gradient(to bottom, #fff, #fff9f2); }
-        .combo-badge { position: absolute; top: 20px; left: 20px; background: #ff9f43; color: #fff; padding: 5px 15px; font-weight: 700; border-radius: 8px; z-index: 10; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4); }
+        .combo-card { border: 2px solid #ff9f43; box-shadow: 0 15px 35px rgba(255, 159, 67, 0.15); background: linear-gradient(to bottom, #ffffff, #fffdfa); }
+        .combo-badge { position: absolute; top: 20px; left: 20px; background: #ff9f43; color: #fff; padding: 6px 18px; font-weight: 700; border-radius: 8px; z-index: 10; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4); }
 
-        /* Modern Cart Sidebar */
+        /* Add Cart & Other Styles here (Will be continued in Part 2) */
+        
+        /* Features Section */
+        .features-section { background: var(--white); }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-top: 40px; }
+        .feature-box { text-align: left; padding: 40px 30px; border-radius: 20px; background: var(--bg-light); border: 1px solid transparent; transition: var(--transition); }
+        .feature-box:hover { background: var(--white); border-color: #eee; box-shadow: 0 15px 30px rgba(0,0,0,0.05); transform: translateY(-5px); }
+        .feature-icon-wrapper { width: 70px; height: 70px; background: rgba(10, 61, 98, 0.05); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; transition: var(--transition); }
+        .feature-box:hover .feature-icon-wrapper { background: var(--gradient); }
+        .feature-icon { font-size: 2rem; color: var(--primary-blue); transition: var(--transition); }
+        .feature-box:hover .feature-icon { color: var(--white); }
+        .feature-box h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; }
+
+        /* Distributor Section */
+        .distributor-section { background: var(--primary-blue); color: var(--white); position: relative; }
+        .distributor-section .section-title { color: var(--white); -webkit-text-fill-color: var(--white); }
+        .form-container { max-width: 650px; margin: 0 auto; background: var(--white); padding: 50px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+        .form-control { width: 100%; padding: 15px 20px; border: 1px solid #e1e5ee; border-radius: 12px; font-size: 1rem; background: #f8f9fa; transition: var(--transition); margin-bottom: 20px; }
+        .form-control:focus { outline: none; border-color: var(--primary-green); background: var(--white); box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1); }
+        
+        /* Cart Sidebar & Overlay Styles */
         .cart-sidebar {
             position: fixed; top: 0; right: -100%; width: 420px; max-width: 100%; height: 100vh;
             background: var(--white); box-shadow: -10px 0 50px rgba(0,0,0,0.2);
@@ -129,15 +167,13 @@
         .close-cart:hover { transform: rotate(90deg); }
         .cart-body { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; }
         
-        .cart-items { margin-bottom: 30px; }
-        .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
         .cart-item-info h4 { font-size: 1rem; color: var(--text-dark); margin-bottom: 5px; }
         .cart-item-price { color: var(--primary-green); font-weight: 800; font-size: 1rem;}
         .qty-controls { display: flex; align-items: center; gap: 15px; margin-top: 10px; background: #fff; padding: 5px 10px; border-radius: 8px; border: 1px solid #eee; display: inline-flex; }
         .qty-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold; color: var(--primary-blue); }
         .remove-btn { color: #ff4757; cursor: pointer; font-size: 1.2rem; border: none; background: none; padding: 10px; }
 
-        /* Cart Suggestions (Cross-sell) */
         .cart-suggestions { margin-top: auto; padding-top: 20px; border-top: 2px dashed #eee; }
         .cart-suggestions h4 { font-size: 0.95rem; color: #888; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
         .suggestion-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px; transition: 0.3s; }
@@ -158,39 +194,35 @@
 
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1500; display: none; opacity: 0; transition: 0.3s; }
         .overlay.active { display: block; opacity: 1; }
-
-        /* Floating Bot */
         .floating-bot { position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; background: #25D366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4); cursor: pointer; z-index: 999; transition: 0.3s; }
         .floating-bot:hover { transform: scale(1.1); }
 
-        /* Feature & Distributor Section basics (kept clean) */
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
-        .feature-box { text-align: left; padding: 40px 30px; border-radius: 20px; background: var(--bg-light); border: 1px solid transparent; }
-        .feature-icon-wrapper { width: 70px; height: 70px; background: rgba(10, 61, 98, 0.05); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; }
-        .feature-icon { font-size: 2rem; color: var(--primary-blue); }
-        .form-container { max-width: 650px; margin: 0 auto; background: var(--white); padding: 50px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
-        .form-control { width: 100%; padding: 15px 20px; border: 1px solid #e1e5ee; border-radius: 12px; margin-bottom: 20px; font-size: 1rem; }
+        footer { background: #051e31; color: #fff; padding: 60px 5% 30px; text-align: center; }
+        
+        @media (max-width: 992px) { .hero h1 { font-size: 3.2rem; } .section-title { font-size: 2.3rem; } }
+        @media (max-width: 768px) { .hero h1 { font-size: 2.8rem; } .hero-buttons { flex-direction: column; } .form-container { padding: 30px 20px; } }
     </style>
 </head>
 <body>
 
+    <!-- Premium Navbar -->
     <nav id="navbar">
         <div class="logo"><i class="fa-solid fa-hands-bubbles"></i> Jamidara</div>
         
         <ul class="nav-links" id="navLinks">
             <li><a href="#home" onclick="closeMenu()">Home</a></li>
+            <li><a href="#about" onclick="closeMenu()">About Us</a></li>
             <li><a href="#products" onclick="closeMenu()">Products</a></li>
             <li><a href="#features" onclick="closeMenu()">Why Us</a></li>
             <li><a href="#distributor" onclick="closeMenu()">Distributorship</a></li>
             
-            <!-- Mobile Only Action Buttons -->
             <li class="mobile-only">
                 <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="closeMenu(); document.getElementById('products').scrollIntoView();">
                     <i class="fa-solid fa-bolt"></i> Order Now
                 </button>
             </li>
             <li class="mobile-only">
-                <button class="btn btn-outline" style="width: 100%; justify-content: center; background: #f5f6fa; color: var(--primary-blue); border: none;" onclick="closeMenu(); toggleCart();">
+                <button class="btn btn-outline" style="width: 100%; justify-content: center; background: #f5f6fa; color: var(--primary-blue); border: none; margin-top: 10px;" onclick="closeMenu(); toggleCart();">
                     <i class="fa-solid fa-basket-shopping"></i> View Basket
                 </button>
             </li>
@@ -205,27 +237,38 @@
         </div>
     </nav>
 
-    <!-- Overlay for mobile menu -->
+    <!-- Overlay for Mobile Menu -->
     <div class="overlay" id="menuOverlay" onclick="closeMenu()"></div>
 
+    <!-- Hero Section -->
     <header class="hero" id="home">
         <div class="hero-content">
-            <div class="hero-badge">⭐ High-Performance Cleaning</div>
+            <div class="hero-badge">⭐ Premium Quality FMCG Products</div>
             <h1>Make Your Home Shine Effortlessly</h1>
-            <p>Order premium FMCG products online. Cash on delivery available directly to your doorstep.</p>
+            <p>Order premium cleaning products online. Cash on delivery available directly to your doorstep across India.</p>
             <div class="hero-buttons">
-                <a href="#products" class="btn btn-primary">Order Now <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="#products" class="btn btn-primary">Shop Now <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="#distributor" class="btn btn-outline">Join as Distributor</a>
             </div>
         </div>
     </header>
 
+    <!-- Original About Section -->
+    <section class="about-section" id="about">
+        <h2 class="section-title">About Jamidara Group</h2>
+        <div class="about-content">
+            <p>Jamidara Group is a growing cleaning products manufacturer providing high quality and affordable solutions for households, hotels, and commercial users. Our mission is to deliver powerful cleaning performance with trusted quality, ensuring every space shines brilliantly while remaining cost-effective for the Indian consumer.</p>
+        </div>
+    </section>
+
+    <!-- Products Section -->
     <section class="products-section" id="products">
         <h2 class="section-title">Shop Our Products</h2>
         <p class="section-subtitle">Premium formulas tested for the toughest Indian conditions.</p>
         
         <div class="product-grid">
 
-            <!-- 🌟 COMBO OFFER CARD 🌟 -->
+            <!-- COMBO OFFER -->
             <div class="product-card combo-card">
                 <div class="combo-badge">🔥 Best Value Combo</div>
                 <div class="img-wrapper"><img src="combo.jpg" alt="Combo Pack" class="product-img"></div>
@@ -246,15 +289,16 @@
                 </div>
             </div>
 
+            <!-- Single Products -->
             <div class="product-card">
                 <div class="img-wrapper"><img src="detergent-powder.jpg" alt="Detergent Powder" class="product-img"></div>
                 <div class="product-info">
                     <div>
                         <h3 class="product-title">Detergent Powder</h3>
-                        <p class="product-desc">Tough on stubborn stains, gentle on clothes.</p>
+                        <p class="product-desc">Tough on stubborn stains, gentle on your everyday clothes.</p>
                     </div>
                     <div>
-                        <div class="price-wrapper"><span class="price-tag">₹200</span><span style="color: #888;">/ 2.5 kg</span></div>
+                        <div class="price-wrapper"><span class="price-tag">₹200</span><span style="color: #888; font-weight: 600;">/ 2.5 kg</span></div>
                         <button class="btn-add" onclick="addToCart('Detergent Powder (2.5kg)', 200)">
                             <i class="fa-solid fa-cart-plus"></i> Order Now
                         </button>
@@ -267,10 +311,10 @@
                 <div class="product-info">
                     <div>
                         <h3 class="product-title">Liquid Detergent Gel</h3>
-                        <p class="product-desc">5X power formula for washing machines.</p>
+                        <p class="product-desc">5X power formula specially designed for washing machines.</p>
                     </div>
                     <div>
-                        <div class="price-wrapper"><span class="price-tag">₹100</span><span style="color: #888;">/ 1 kg</span></div>
+                        <div class="price-wrapper"><span class="price-tag">₹100</span><span style="color: #888; font-weight: 600;">/ 1 kg</span></div>
                         <button class="btn-add" onclick="addToCart('Liquid Detergent (1kg)', 100)">
                             <i class="fa-solid fa-cart-plus"></i> Order Now
                         </button>
@@ -283,10 +327,10 @@
                 <div class="product-info">
                     <div>
                         <h3 class="product-title">Bathroom Cleaner</h3>
-                        <p class="product-desc">Instantly removes hard water stains.</p>
+                        <p class="product-desc">Instantly removes hard water stains and soap scum.</p>
                     </div>
                     <div>
-                        <div class="price-wrapper"><span class="price-tag">₹50</span><span style="color: #888;">/ Bottle</span></div>
+                        <div class="price-wrapper"><span class="price-tag">₹50</span><span style="color: #888; font-weight: 600;">/ Bottle</span></div>
                         <button class="btn-add" onclick="addToCart('Bathroom Cleaner', 50)">
                             <i class="fa-solid fa-cart-plus"></i> Order Now
                         </button>
@@ -299,10 +343,10 @@
                 <div class="product-info">
                     <div>
                         <h3 class="product-title">Toilet Cleaner</h3>
-                        <p class="product-desc">Cuts through tough yellowish stains quickly.</p>
+                        <p class="product-desc">Cuts through tough yellowish stains quickly and kills 99.9% germs.</p>
                     </div>
                     <div>
-                        <div class="price-wrapper"><span class="price-tag">₹50</span><span style="color: #888;">/ Bottle</span></div>
+                        <div class="price-wrapper"><span class="price-tag">₹50</span><span style="color: #888; font-weight: 600;">/ Bottle</span></div>
                         <button class="btn-add" onclick="addToCart('Toilet Cleaner', 50)">
                             <i class="fa-solid fa-cart-plus"></i> Order Now
                         </button>
@@ -315,10 +359,10 @@
                 <div class="product-info">
                     <div>
                         <h3 class="product-title">Premium Jadu (Broom)</h3>
-                        <p class="product-desc">High-quality, long-lasting broom for daily sweeping.</p>
+                        <p class="product-desc">High-quality, long-lasting broom for daily effortless sweeping.</p>
                     </div>
                     <div>
-                        <div class="price-wrapper"><span class="price-tag">₹25</span><span style="color: #888;">/ Piece</span></div>
+                        <div class="price-wrapper"><span class="price-tag">₹25</span><span style="color: #888; font-weight: 600;">/ Piece</span></div>
                         <button class="btn-add" onclick="addToCart('Jadu / Broom', 25)">
                             <i class="fa-solid fa-cart-plus"></i> Order Now
                         </button>
@@ -328,8 +372,59 @@
 
         </div>
     </section>
+    <section class="features-section" id="features">
+        <h2 class="section-title">Why Partner With Us?</h2>
+        <p class="section-subtitle">We don't just sell products; we build long-term profitable relationships.</p>
+        <div class="features-grid">
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-flask feature-icon"></i></div>
+                <h3>Advanced Formulation</h3>
+                <p>Lab-tested chemicals that offer superior cleaning power compared to local alternatives.</p>
+            </div>
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-chart-line feature-icon"></i></div>
+                <h3>High Profit Margins</h3>
+                <p>Designed to give our distributors and retailers the best ROI in the FMCG market.</p>
+            </div>
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-truck-fast feature-icon"></i></div>
+                <h3>Fast Delivery</h3>
+                <p>Reliable logistics ensuring you never run out of stock during peak demand seasons.</p>
+            </div>
+        </div>
+    </section>
 
-    <!-- Shopping Cart Sidebar -->
+    <section class="distributor-section" id="distributor">
+        <div style="position: relative; z-index: 2; text-align: center; margin-bottom: 40px;">
+            <h2 class="section-title">Become a Distributor</h2>
+            <p style="opacity: 0.9; font-size: 1.1rem;">Fill the form below to get our exclusive bulk pricing catalog.</p>
+        </div>
+        <div class="form-container">
+            <form id="distributorForm">
+                <input type="text" class="form-control" placeholder="Your Full Name" required>
+                <input type="tel" class="form-control" placeholder="WhatsApp Mobile Number" required>
+                <input type="text" class="form-control" placeholder="City / District Location" required>
+                <select class="form-control" required style="cursor: pointer;">
+                    <option value="" disabled selected>Select Your Business Type</option>
+                    <option value="retailer">Retail Shop</option>
+                    <option value="wholesaler">Wholesaler / Agency</option>
+                    <option value="new_business">Starting New Business</option>
+                </select>
+                <button type="button" onclick="submitDistributor()" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 16px;">
+                    <i class="fa-brands fa-whatsapp"></i> Send Enquiry via WhatsApp
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="color: white; justify-content: center; margin-bottom: 20px;">
+            <i class="fa-solid fa-hands-bubbles" style="color: var(--primary-green);"></i> Jamidara Group
+        </div>
+        <p style="color: #888; margin-bottom: 30px;">Premium Cleaning Solutions for India.</p>
+        <p style="color: #555; font-size: 0.9rem;">&copy; 2026 Jamidara Group. All Rights Reserved.</p>
+    </footer>
+
     <div class="overlay" id="cartOverlay" onclick="toggleCart()"></div>
     <div class="cart-sidebar" id="cart-sidebar">
         <div class="cart-header">
@@ -338,16 +433,13 @@
         </div>
         
         <div class="cart-body">
-            <div class="cart-items" id="cart-items-container">
-                <!-- Items appear here -->
-            </div>
+            <div class="cart-items" id="cart-items-container"></div>
 
-            <!-- Cart Suggestions (Cross-sell) -->
             <div class="cart-suggestions">
                 <h4>Suggested Add-ons</h4>
                 <div class="suggestion-item">
                     <div class="suggest-info">
-                        <img src="jadu.jpg" alt="Jadu" style="border: 1px solid #ddd;">
+                        <img src="jadu.jpg" alt="Jadu" style="border: 1px solid #ddd; background: #fff;">
                         <div>
                             <h5>Premium Jadu</h5>
                             <span>₹25</span>
@@ -383,7 +475,6 @@
         </div>
     </div>
 
-    <!-- Floating WhatsApp -->
     <a href="https://wa.me/916377856641?text=Hello%20Jamidara%20Group!" target="_blank" class="floating-bot">
         <i class="fa-brands fa-whatsapp"></i>
     </a>
@@ -391,7 +482,7 @@
     <script>
         const WHATSAPP_NUMBER = "916377856641"; 
 
-        // Premium Mobile Menu Logic
+        // Premium Mobile Menu Logic (Fixed blur & click issues)
         const menuToggle = document.getElementById('menuToggle');
         const navLinks = document.getElementById('navLinks');
         const menuOverlay = document.getElementById('menuOverlay');
@@ -402,7 +493,7 @@
             menuOverlay.classList.toggle('active');
             if(navLinks.classList.contains('active')){
                 icon.classList.replace('fa-bars-staggered', 'fa-xmark');
-                document.body.style.overflow = 'hidden'; // Stop background scrolling
+                document.body.style.overflow = 'hidden'; 
             } else {
                 icon.classList.replace('fa-xmark', 'fa-bars-staggered');
                 document.body.style.overflow = 'auto';
@@ -412,35 +503,48 @@
         function closeMenu() {
             navLinks.classList.remove('active');
             menuOverlay.classList.remove('active');
-            icon.classList.replace('fa-xmark', 'fa-bars-staggered');
+            if(icon.classList.contains('fa-xmark')){
+                icon.classList.replace('fa-xmark', 'fa-bars-staggered');
+            }
             document.body.style.overflow = 'auto';
         }
 
-        // Cart Logic
+        // Cart Logic with Memory (Local Storage)
         let cart = JSON.parse(localStorage.getItem('jamidara_cart')) || [];
         updateCartUI();
 
-        function saveCart() { localStorage.setItem('jamidara_cart', JSON.stringify(cart)); }
+        function saveCart() { 
+            localStorage.setItem('jamidara_cart', JSON.stringify(cart)); 
+        }
 
         function addToCart(name, price) {
             const existingItem = cart.find(item => item.name === name);
-            if (existingItem) { existingItem.qty += 1; } 
-            else { cart.push({ name: name, price: price, qty: 1 }); }
-            saveCart(); updateCartUI(); 
+            if (existingItem) { 
+                existingItem.qty += 1; 
+            } else { 
+                cart.push({ name: name, price: price, qty: 1 }); 
+            }
+            saveCart(); 
+            updateCartUI(); 
+            
+            // Open Cart Automatically
             document.getElementById('cart-sidebar').classList.add('open');
             document.getElementById('cartOverlay').classList.add('active');
             document.body.style.overflow = 'hidden';
-            closeMenu(); // Close menu if ordering from mobile menu
+            closeMenu(); 
         }
 
         function changeQty(index, amount) {
             cart[index].qty += amount;
             if (cart[index].qty <= 0) { cart.splice(index, 1); }
-            saveCart(); updateCartUI();
+            saveCart(); 
+            updateCartUI();
         }
 
         function removeFromCart(index) {
-            cart.splice(index, 1); saveCart(); updateCartUI();
+            cart.splice(index, 1); 
+            saveCart(); 
+            updateCartUI();
         }
 
         function updateCartUI() {
@@ -449,13 +553,19 @@
             const totalPriceEl = document.getElementById('cart-total-price');
             
             container.innerHTML = '';
-            let total = 0; let count = 0;
+            let total = 0; 
+            let count = 0;
 
             if (cart.length === 0) {
-                container.innerHTML = `<div style="text-align:center; color:#888; padding:30px 0;"><i class="fa-solid fa-basket-shopping fa-3x" style="color:#eee; margin-bottom:15px;"></i><p>Your basket is empty</p></div>`;
+                container.innerHTML = `
+                <div style="text-align:center; color:#888; padding:30px 0;">
+                    <i class="fa-solid fa-basket-shopping fa-3x" style="color:#eee; margin-bottom:15px;"></i>
+                    <p>Your basket is empty</p>
+                </div>`;
             } else {
                 cart.forEach((item, index) => {
-                    total += item.price * item.qty; count += item.qty;
+                    total += item.price * item.qty; 
+                    count += item.qty;
                     container.innerHTML += `
                         <div class="cart-item">
                             <div class="cart-item-info" style="flex:1;">
@@ -467,12 +577,15 @@
                                     <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
                                 </div>
                             </div>
-                            <button class="remove-btn" onclick="removeFromCart(${index})"><i class="fa-solid fa-trash"></i></button>
+                            <button class="remove-btn" onclick="removeFromCart(${index})">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
                         </div>
                     `;
                 });
             }
-            countBadge.innerText = count; totalPriceEl.innerText = `₹${total}`;
+            countBadge.innerText = count; 
+            totalPriceEl.innerText = `₹${total}`;
         }
 
         function toggleCart() {
@@ -480,6 +593,7 @@
             const overlay = document.getElementById('cartOverlay');
             sidebar.classList.toggle('open');
             overlay.classList.toggle('active');
+            
             if(sidebar.classList.contains('open')){
                 document.body.style.overflow = 'hidden';
             } else {
@@ -487,24 +601,54 @@
             }
         }
 
+        // WhatsApp Checkout Logic
         function checkoutWhatsApp() {
-            if (cart.length === 0) { alert("Your basket is empty!"); return; }
+            if (cart.length === 0) { 
+                alert("Your basket is empty! Please add products before ordering."); 
+                return; 
+            }
             const name = document.getElementById('cust-name').value;
             const address = document.getElementById('cust-address').value;
-            if (!name || !address) { alert("Please enter your name and full delivery address."); return; }
+            
+            if (!name || !address) { 
+                alert("Please enter your name and full delivery address."); 
+                return; 
+            }
 
             let billText = `*⭐ NEW COD ORDER - JAMIDARA GROUP ⭐*%0A%0A*👤 Customer Details:*%0AName: ${name}%0AAddress: ${address}%0A%0A*🛍️ Order Summary:*%0A------------------------%0A`;
             let total = 0;
+            
             cart.forEach(item => {
                 billText += `▪️ ${item.name}%0A   Qty: ${item.qty} x ₹${item.price} = ₹${item.price * item.qty}%0A`;
                 total += item.price * item.qty;
             });
+            
             billText += `------------------------%0A*💰 Total Amount to Pay (COD): ₹${total}*%0A%0A`;
             billText += `Please process my order. Thank you!`;
 
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${billText}`, '_blank');
-            cart = []; saveCart(); updateCartUI(); toggleCart();
-            document.getElementById('cust-name').value = ''; document.getElementById('cust-address').value = '';
+            
+            // Clear cart after redirect
+            cart = []; 
+            saveCart(); 
+            updateCartUI(); 
+            toggleCart();
+            document.getElementById('cust-name').value = ''; 
+            document.getElementById('cust-address').value = '';
+        }
+
+        // Distributor Enquiry WhatsApp Logic
+        function submitDistributor() {
+            const form = document.getElementById('distributorForm');
+            const inputs = form.querySelectorAll('input, select');
+            
+            if(!inputs[0].value || !inputs[1].value || !inputs[2].value || !inputs[3].value) {
+                alert("Please fill all fields before submitting."); 
+                return;
+            }
+            
+            let text = `*💼 NEW DISTRIBUTOR ENQUIRY*%0A%0A*Name:* ${inputs[0].value}%0A*Mobile:* ${inputs[1].value}%0A*City:* ${inputs[2].value}%0A*Business Type:* ${inputs[3].options[inputs[3].selectedIndex].text}%0A%0APlease send me the bulk pricing catalog.`;
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
         }
     </script>
 </body>

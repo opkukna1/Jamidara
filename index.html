@@ -532,7 +532,7 @@
     <a href="https://wa.me/916377856641?text=Hello%20Jamidara%20Group!" target="_blank" class="floating-bot">
         <i class="fa-brands fa-whatsapp"></i>
     </a>
-
+    
     <script>
         const WHATSAPP_NUMBER = "916377856641"; 
 
@@ -604,7 +604,7 @@
             }
         }
 
-        // Called when standard "Add to Basket" or "+" is pressed from outside main buttons
+        // Called when standard "Add to Basket" or "+" is pressed
         function addToCart(name, price, openCart = false) {
             const existingItem = cart.find(item => item.name === name);
             if (existingItem) { 
@@ -624,7 +624,7 @@
 
         // Called by "Order Now" button inline
         function addAndShowQty(name, price, id) {
-            addToCart(name, price, false); // Add to cart but DONT open sidebar
+            addToCart(name, price, false); 
         }
 
         // Called by inline - and + buttons
@@ -716,8 +716,8 @@
                     (position) => {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
-                        // Build Google Maps Link
-                        const mapLink = `https://maps.google.com/maps?q=Bikaner,%20Rajasthan&t=&z=13&ie=UTF8&iwloc=&output=embed${lat},${lng}`;
+                        // Clean Google Maps Link fix
+                        const mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
                         
                         document.getElementById('cust-map-link').value = mapLink;
                         status.innerText = "✅ Exact Map Location Saved!";
@@ -734,7 +734,7 @@
             }
         }
 
-        // --- WHATSAPP CHECKOUT LOGIC ---
+        // --- WHATSAPP CHECKOUT LOGIC (FIXED) ---
         function checkoutWhatsApp() {
             if (cart.length === 0) { 
                 alert("Your basket is empty! Please add products before ordering."); 
@@ -750,23 +750,27 @@
                 return; 
             }
 
-            let billText = `*⭐ NEW COD ORDER - JAMIDARA GROUP ⭐*%0A%0A*👤 Customer Details:*%0AName: ${name}%0A`;
+            // Using proper formatting for URL encoding
+            let billText = `*⭐ NEW COD ORDER - JAMIDARA GROUP ⭐*\n\n*👤 Customer Details:*\nName: ${name}\n`;
             
-            if (address) { billText += `Address: ${address}%0A`; }
-            if (mapLink) { billText += `📍 *Google Maps Location:*%0A${mapLink}%0A`; }
+            if (address) { billText += `Address: ${address}\n`; }
+            if (mapLink) { billText += `📍 *Google Maps Location:*\n${mapLink}\n`; }
             
-            billText += `%0A*🛍️ Order Summary:*%0A------------------------%0A`;
+            billText += `\n*🛍️ Order Summary:*\n------------------------\n`;
             let total = 0;
             
             cart.forEach(item => {
-                billText += `▪️ ${item.name}%0A   Qty: ${item.qty} x ₹${item.price} = ₹${item.price * item.qty}%0A`;
+                billText += `▪️ ${item.name}\n   Qty: ${item.qty} x ₹${item.price} = ₹${item.price * item.qty}\n`;
                 total += item.price * item.qty;
             });
             
-            billText += `------------------------%0A*💰 Total Amount to Pay (COD): ₹${total}*%0A%0A`;
+            billText += `------------------------\n*💰 Total Amount to Pay (COD): ₹${total}*\n\n`;
             billText += `Please process my order. Thank you!`;
 
-            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${billText}`, '_blank');
+            // Encoding the final text to prevent map link from breaking the URL
+            const encodedText = encodeURIComponent(billText);
+
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedText}`, '_blank');
             
             // Clear cart & form after redirect
             cart = []; saveCart(); updateCartUI(); toggleCart();
@@ -786,9 +790,12 @@
                 return;
             }
             
-            let text = `*💼 NEW DISTRIBUTOR ENQUIRY*%0A%0A*Name:* ${inputs[0].value}%0A*Mobile:* ${inputs[1].value}%0A*City:* ${inputs[2].value}%0A*Business Type:* ${inputs[3].options[inputs[3].selectedIndex].text}%0A%0APlease send me the bulk pricing catalog.`;
-            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
+            let text = `*💼 NEW DISTRIBUTOR ENQUIRY*\n\n*Name:* ${inputs[0].value}\n*Mobile:* ${inputs[1].value}\n*City:* ${inputs[2].value}\n*Business Type:* ${inputs[3].options[inputs[3].selectedIndex].text}\n\nPlease send me the bulk pricing catalog.`;
+            
+            const encodedText = encodeURIComponent(text);
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedText}`, '_blank');
         }
     </script>
+
 </body>
 </html>

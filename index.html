@@ -51,7 +51,7 @@
         .btn-outline { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 2px solid var(--white); color: var(--white); }
         .btn-outline:hover { background: var(--white); color: var(--primary-blue); transform: translateY(-5px); }
 
-        /* Navbar - Z-INDEX FIXED TO 1600 TO STAY ABOVE OVERLAY */
+        /* Navbar */
         nav {
             position: fixed; width: 100%; top: 0; z-index: 1600; background: var(--glass-bg); backdrop-filter: blur(15px);
             padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); transition: var(--transition);
@@ -71,7 +71,7 @@
             .menu-toggle { display: block; }
             .nav-links {
                 position: fixed; top: 0; right: -100%; width: 300px; 
-                height: 100%; height: 100dvh; /* FIXED HEIGHT FOR MOBILE BROWSER */
+                height: 100%; height: 100dvh; 
                 background: #ffffff; flex-direction: column; justify-content: flex-start;
                 padding: 100px 30px 30px; gap: 20px; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
                 box-shadow: -10px 0 30px rgba(0,0,0,0.15); align-items: flex-start; overflow-y: auto;
@@ -126,13 +126,22 @@
         .price-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
         .price-tag { font-weight: 800; color: var(--primary-green); font-size: 1.5rem; }
         
+        /* NEW: Smart Add to Cart Button Styling */
+        .btn-add-container { height: 50px; }
         .btn-add {
-            width: 100%; padding: 14px; background: var(--primary-blue); color: white; border: none; border-radius: 12px;
+            width: 100%; height: 100%; background: var(--primary-blue); color: white; border: none; border-radius: 12px;
             font-weight: 700; font-size: 1.05rem; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; gap: 8px; align-items: center;
         }
-        .btn-add:hover { background: var(--primary-green); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3); }
-
-        /* Combo Card Styling */
+        .btn-add:hover { background: var(--primary-green); box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3); }
+        .qty-controls-card {
+            display: none; width: 100%; height: 100%; background: var(--primary-green); color: white; border-radius: 12px;
+            justify-content: space-between; align-items: center; font-weight: 700; font-size: 1.2rem; overflow: hidden;
+        }
+        .qty-controls-card button {
+            background: rgba(0,0,0,0.1); border: none; color: white; width: 30%; height: 100%; cursor: pointer; transition: 0.2s;
+        }
+        .qty-controls-card button:hover { background: rgba(0,0,0,0.2); }
+        
         .combo-card { border: 2px solid #ff9f43; box-shadow: 0 15px 35px rgba(255, 159, 67, 0.15); background: linear-gradient(to bottom, #ffffff, #fffdfa); }
         .combo-badge { position: absolute; top: 20px; left: 20px; background: #ff9f43; color: #fff; padding: 6px 18px; font-weight: 700; border-radius: 8px; z-index: 10; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4); }
 
@@ -154,10 +163,10 @@
         .form-control { width: 100%; padding: 15px 20px; border: 1px solid #e1e5ee; border-radius: 12px; font-size: 1rem; background: #f8f9fa; transition: var(--transition); margin-bottom: 20px; }
         .form-control:focus { outline: none; border-color: var(--primary-green); background: var(--white); box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1); }
         
-        /* Cart Sidebar & Overlay Styles - HEIGHT & OVERFLOW FIXED */
+        /* Cart Sidebar Styles */
         .cart-sidebar {
             position: fixed; top: 0; right: -100%; width: 420px; max-width: 100%; 
-            height: 100%; height: 100dvh; /* FIXED HEIGHT FOR MOBILE BROWSER */
+            height: 100%; height: 100dvh; 
             background: var(--white); box-shadow: -10px 0 50px rgba(0,0,0,0.2);
             transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); z-index: 2000; display: flex; flex-direction: column;
         }
@@ -185,17 +194,13 @@
         .btn-suggest { background: var(--primary-blue); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem; transition: 0.3s; }
         .btn-suggest:hover { background: var(--primary-green); transform: scale(1.1); }
 
-        .cart-footer { 
-            padding: 20px 25px 40px; /* EXTRA BOTTOM PADDING FOR PHONE SWIPE BAR */
-            border-top: 1px solid #eee; background: #fff; box-shadow: 0 -10px 20px rgba(0,0,0,0.03); 
-        }
+        .cart-footer { padding: 20px 25px 40px; border-top: 1px solid #eee; background: #fff; box-shadow: 0 -10px 20px rgba(0,0,0,0.03); }
         .cart-total { display: flex; justify-content: space-between; font-size: 1.4rem; font-weight: 800; margin-bottom: 15px; color: var(--text-dark); }
         .checkout-form input { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #eee; border-radius: 10px; font-size: 1rem; }
         .checkout-form input:focus { outline: none; border-color: var(--primary-green); }
         .btn-checkout { width: 100%; padding: 16px; background: #25D366; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
         .btn-checkout:hover { background: #1da851; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3); }
 
-        /* OVERLAY Z-INDEX FIXED TO STAY BEHIND NAVBAR */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1500; display: none; opacity: 0; transition: 0.3s; }
         .overlay.active { display: block; opacity: 1; }
         .floating-bot { position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; background: #25D366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4); cursor: pointer; z-index: 999; transition: 0.3s; }
@@ -280,9 +285,16 @@
                             <span class="price-tag">₹480</span>
                             <span style="color: #ff9f43; font-weight: 700; text-decoration: line-through;">₹520</span>
                         </div>
-                        <button class="btn-add" style="background: #ff9f43;" onclick="addToCart('Complete Care Combo', 480)">
-                            <i class="fa-solid fa-cart-plus"></i> Add Combo to Basket
-                        </button>
+                        <div class="btn-add-container" id="container-combo">
+                            <button class="btn-add" id="btn-combo" style="background: #ff9f43;" onclick="addAndShowQty('Complete Care Combo', 480, 'combo')">
+                                <i class="fa-solid fa-cart-plus"></i> Add Combo to Basket
+                            </button>
+                            <div class="qty-controls-card" id="qty-combo" style="background: #ff9f43;">
+                                <button onclick="updateQtyInline('Complete Care Combo', -1, 'combo')">-</button>
+                                <span id="val-combo">1</span>
+                                <button onclick="updateQtyInline('Complete Care Combo', 1, 'combo')">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -296,9 +308,16 @@
                     </div>
                     <div>
                         <div class="price-wrapper"><span class="price-tag">₹200</span><span style="color: #888; font-weight: 600;">/ 2.5 kg</span></div>
-                        <button class="btn-add" onclick="addToCart('Detergent Powder (2.5kg)', 200)">
-                            <i class="fa-solid fa-cart-plus"></i> Order Now
-                        </button>
+                        <div class="btn-add-container" id="container-detergent">
+                            <button class="btn-add" id="btn-detergent" onclick="addAndShowQty('Detergent Powder (2.5kg)', 200, 'detergent')">
+                                <i class="fa-solid fa-cart-plus"></i> Order Now
+                            </button>
+                            <div class="qty-controls-card" id="qty-detergent">
+                                <button onclick="updateQtyInline('Detergent Powder (2.5kg)', -1, 'detergent')">-</button>
+                                <span id="val-detergent">1</span>
+                                <button onclick="updateQtyInline('Detergent Powder (2.5kg)', 1, 'detergent')">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -312,9 +331,16 @@
                     </div>
                     <div>
                         <div class="price-wrapper"><span class="price-tag">₹100</span><span style="color: #888; font-weight: 600;">/ 1 kg</span></div>
-                        <button class="btn-add" onclick="addToCart('Liquid Detergent (1kg)', 100)">
-                            <i class="fa-solid fa-cart-plus"></i> Order Now
-                        </button>
+                        <div class="btn-add-container" id="container-liquid">
+                            <button class="btn-add" id="btn-liquid" onclick="addAndShowQty('Liquid Detergent (1kg)', 100, 'liquid')">
+                                <i class="fa-solid fa-cart-plus"></i> Order Now
+                            </button>
+                            <div class="qty-controls-card" id="qty-liquid">
+                                <button onclick="updateQtyInline('Liquid Detergent (1kg)', -1, 'liquid')">-</button>
+                                <span id="val-liquid">1</span>
+                                <button onclick="updateQtyInline('Liquid Detergent (1kg)', 1, 'liquid')">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -328,9 +354,16 @@
                     </div>
                     <div>
                         <div class="price-wrapper"><span class="price-tag">₹50</span><span style="color: #888; font-weight: 600;">/ Bottle</span></div>
-                        <button class="btn-add" onclick="addToCart('Bathroom Cleaner', 50)">
-                            <i class="fa-solid fa-cart-plus"></i> Order Now
-                        </button>
+                        <div class="btn-add-container" id="container-bathroom">
+                            <button class="btn-add" id="btn-bathroom" onclick="addAndShowQty('Bathroom Cleaner', 50, 'bathroom')">
+                                <i class="fa-solid fa-cart-plus"></i> Order Now
+                            </button>
+                            <div class="qty-controls-card" id="qty-bathroom">
+                                <button onclick="updateQtyInline('Bathroom Cleaner', -1, 'bathroom')">-</button>
+                                <span id="val-bathroom">1</span>
+                                <button onclick="updateQtyInline('Bathroom Cleaner', 1, 'bathroom')">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -344,9 +377,16 @@
                     </div>
                     <div>
                         <div class="price-wrapper"><span class="price-tag">₹50</span><span style="color: #888; font-weight: 600;">/ Bottle</span></div>
-                        <button class="btn-add" onclick="addToCart('Toilet Cleaner', 50)">
-                            <i class="fa-solid fa-cart-plus"></i> Order Now
-                        </button>
+                        <div class="btn-add-container" id="container-toilet">
+                            <button class="btn-add" id="btn-toilet" onclick="addAndShowQty('Toilet Cleaner', 50, 'toilet')">
+                                <i class="fa-solid fa-cart-plus"></i> Order Now
+                            </button>
+                            <div class="qty-controls-card" id="qty-toilet">
+                                <button onclick="updateQtyInline('Toilet Cleaner', -1, 'toilet')">-</button>
+                                <span id="val-toilet">1</span>
+                                <button onclick="updateQtyInline('Toilet Cleaner', 1, 'toilet')">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -360,9 +400,16 @@
                     </div>
                     <div>
                         <div class="price-wrapper"><span class="price-tag">₹25</span><span style="color: #888; font-weight: 600;">/ Piece</span></div>
-                        <button class="btn-add" onclick="addToCart('Jadu / Broom', 25)">
-                            <i class="fa-solid fa-cart-plus"></i> Order Now
-                        </button>
+                        <div class="btn-add-container" id="container-jhadu">
+                            <button class="btn-add" id="btn-jhadu" onclick="addAndShowQty('Jhadu / Broom', 25, 'jhadu')">
+                                <i class="fa-solid fa-cart-plus"></i> Order Now
+                            </button>
+                            <div class="qty-controls-card" id="qty-jhadu">
+                                <button onclick="updateQtyInline('Jhadu / Broom', -1, 'jhadu')">-</button>
+                                <span id="val-jhadu">1</span>
+                                <button onclick="updateQtyInline('Jhadu / Broom', 1, 'jhadu')">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -418,7 +465,7 @@
         <div class="logo" style="color: white; justify-content: center; margin-bottom: 20px;">
             <i class="fa-solid fa-hands-bubbles" style="color: var(--primary-green);"></i> Jamidara Group
         </div>
-        <p style="color: #888; margin-bottom: 30px;">💥 Premium Cleaning Solutions for India 💥.</p>
+        <p style="color: #888; margin-bottom: 30px;">💥 Premium Cleaning Solutions for India 💥</p>
         <p style="color: #555; font-size: 0.9rem;">&copy; 2026 Jamidara Group ❤️. All Rights Reserved.</p>
     </footer>
 
@@ -442,7 +489,7 @@
                             <span>₹25</span>
                         </div>
                     </div>
-                    <button class="btn-suggest" onclick="addToCart('Jhadu / Broom', 25)">+</button>
+                    <button class="btn-suggest" onclick="addToCart('Jhadu / Broom', 25, true)">+</button>
                 </div>
                 <div class="suggestion-item">
                     <div class="suggest-info">
@@ -452,7 +499,7 @@
                             <span>₹50</span>
                         </div>
                     </div>
-                    <button class="btn-suggest" onclick="addToCart('Bathroom Cleaner', 50)">+</button>
+                    <button class="btn-suggest" onclick="addToCart('Bathroom Cleaner', 50, true)">+</button>
                 </div>
             </div>
         </div>
@@ -464,7 +511,17 @@
             </div>
             <div class="checkout-form">
                 <input type="text" id="cust-name" placeholder="Full Name" required>
-                <input type="text" id="cust-address" placeholder="Delivery Address & Pincode" required>
+                
+                <div style="position: relative; margin-bottom: 5px;">
+                    <input type="text" id="cust-address" placeholder="House/Flat No. (Or click Map ->)" style="padding-right: 90px;">
+                    <button type="button" onclick="getGPSLocation()" style="position: absolute; right: 4px; top: 4px; padding: 10px 15px; background: var(--primary-blue); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.3s;">
+                        <i class="fa-solid fa-location-crosshairs"></i> Map
+                    </button>
+                </div>
+                
+                <input type="hidden" id="cust-map-link" value="">
+                <small id="location-status" style="color: var(--primary-green); display: block; margin-bottom: 12px; font-weight: 600; font-size: 0.85rem;"></small>
+
                 <button class="btn-checkout" onclick="checkoutWhatsApp()">
                     <i class="fa-brands fa-whatsapp fa-lg"></i> Confirm Order (COD)
                 </button>
@@ -506,15 +563,49 @@
             document.body.style.overflow = 'auto';
         }
 
-        // Cart Logic with Memory (Local Storage)
+        // --- SMART CART LOGIC ---
         let cart = JSON.parse(localStorage.getItem('jamidara_cart')) || [];
+        
+        // Product Name to ID mapping (For inline buttons)
+        const productMap = {
+            'Complete Care Combo': 'combo',
+            'Detergent Powder (2.5kg)': 'detergent',
+            'Liquid Detergent (1kg)': 'liquid',
+            'Bathroom Cleaner': 'bathroom',
+            'Toilet Cleaner': 'toilet',
+            'Jhadu / Broom': 'jhadu'
+        };
+
+        // UI Load
         updateCartUI();
 
         function saveCart() { 
             localStorage.setItem('jamidara_cart', JSON.stringify(cart)); 
         }
 
-        function addToCart(name, price) {
+        // Sync inline buttons with current cart state
+        function syncInlineButtons() {
+            for (const [name, id] of Object.entries(productMap)) {
+                const item = cart.find(i => i.name === name);
+                const btn = document.getElementById(`btn-${id}`);
+                const qtyCard = document.getElementById(`qty-${id}`);
+                const valSpan = document.getElementById(`val-${id}`);
+                
+                if(btn && qtyCard && valSpan) {
+                    if (item) {
+                        btn.style.display = 'none';
+                        qtyCard.style.display = 'flex';
+                        valSpan.innerText = item.qty;
+                    } else {
+                        btn.style.display = 'flex';
+                        qtyCard.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        // Called when standard "Add to Basket" or "+" is pressed from outside main buttons
+        function addToCart(name, price, openCart = false) {
             const existingItem = cart.find(item => item.name === name);
             if (existingItem) { 
                 existingItem.qty += 1; 
@@ -524,11 +615,24 @@
             saveCart(); 
             updateCartUI(); 
             
-            // Open Cart Automatically
-            document.getElementById('cart-sidebar').classList.add('open');
-            document.getElementById('cartOverlay').classList.add('active');
-            document.body.style.overflow = 'hidden';
-            closeMenu(); 
+            if(openCart) {
+                document.getElementById('cart-sidebar').classList.add('open');
+                document.getElementById('cartOverlay').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // Called by "Order Now" button inline
+        function addAndShowQty(name, price, id) {
+            addToCart(name, price, false); // Add to cart but DONT open sidebar
+        }
+
+        // Called by inline - and + buttons
+        function updateQtyInline(name, amount, id) {
+            const index = cart.findIndex(item => item.name === name);
+            if (index !== -1) {
+                changeQty(index, amount);
+            }
         }
 
         function changeQty(index, amount) {
@@ -583,6 +687,9 @@
             }
             countBadge.innerText = count; 
             totalPriceEl.innerText = `₹${total}`;
+            
+            // UI Sync function call
+            syncInlineButtons();
         }
 
         function toggleCart() {
@@ -598,7 +705,36 @@
             }
         }
 
-        // WhatsApp Checkout Logic
+        // --- MAP & LOCATION LOGIC ---
+        function getGPSLocation() {
+            const status = document.getElementById('location-status');
+            status.innerText = "⏳ Fetching your exact location...";
+            status.style.color = "#ff9f43";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        // Build Google Maps Link
+                        const mapLink = `https://maps.google.com/maps?q=Bikaner,%20Rajasthan&t=&z=13&ie=UTF8&iwloc=&output=embed${lat},${lng}`;
+                        
+                        document.getElementById('cust-map-link').value = mapLink;
+                        status.innerText = "✅ Exact Map Location Saved!";
+                        status.style.color = "var(--primary-green)";
+                    },
+                    (error) => {
+                        status.innerText = "❌ Location access denied. Please type address manually.";
+                        status.style.color = "#ff4757";
+                    }
+                );
+            } else {
+                status.innerText = "❌ GPS not supported on this browser.";
+                status.style.color = "#ff4757";
+            }
+        }
+
+        // --- WHATSAPP CHECKOUT LOGIC ---
         function checkoutWhatsApp() {
             if (cart.length === 0) { 
                 alert("Your basket is empty! Please add products before ordering."); 
@@ -606,13 +742,20 @@
             }
             const name = document.getElementById('cust-name').value;
             const address = document.getElementById('cust-address').value;
+            const mapLink = document.getElementById('cust-map-link').value;
             
-            if (!name || !address) { 
-                alert("Please enter your name and full delivery address."); 
+            if (!name) { alert("Please enter your name."); return; }
+            if (!address && !mapLink) { 
+                alert("Please either type your address OR click the 'Map' button."); 
                 return; 
             }
 
-            let billText = `*⭐ NEW COD ORDER - JAMIDARA GROUP ⭐*%0A%0A*👤 Customer Details:*%0AName: ${name}%0AAddress: ${address}%0A%0A*🛍️ Order Summary:*%0A------------------------%0A`;
+            let billText = `*⭐ NEW COD ORDER - JAMIDARA GROUP ⭐*%0A%0A*👤 Customer Details:*%0AName: ${name}%0A`;
+            
+            if (address) { billText += `Address: ${address}%0A`; }
+            if (mapLink) { billText += `📍 *Google Maps Location:*%0A${mapLink}%0A`; }
+            
+            billText += `%0A*🛍️ Order Summary:*%0A------------------------%0A`;
             let total = 0;
             
             cart.forEach(item => {
@@ -625,13 +768,12 @@
 
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${billText}`, '_blank');
             
-            // Clear cart after redirect
-            cart = []; 
-            saveCart(); 
-            updateCartUI(); 
-            toggleCart();
+            // Clear cart & form after redirect
+            cart = []; saveCart(); updateCartUI(); toggleCart();
             document.getElementById('cust-name').value = ''; 
             document.getElementById('cust-address').value = '';
+            document.getElementById('cust-map-link').value = '';
+            document.getElementById('location-status').innerText = '';
         }
 
         // Distributor Enquiry WhatsApp Logic

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jamidara Group | Premium Cleaning Solutions</title>
+    
+    <!-- Modern Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Modern CSS Variables */
+        :root {
+            --primary-blue: #0A3D62;
+            --primary-green: #00b894;
+            --gradient: linear-gradient(135deg, #0A3D62, #00b894);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+            --bg-light: #f5f6fa;
+            --white: #ffffff;
+            --transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            color: var(--text-dark);
+            line-height: 1.7;
+            background-color: var(--bg-light);
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        section { padding: 100px 5%; }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-light);
+            font-size: 1.1rem;
+            margin-bottom: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Modern Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: var(--white);
+            box-shadow: 0 10px 20px rgba(0, 184, 148, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px rgba(0, 184, 148, 0.4);
+            color: var(--white);
+        }
+
+        .btn-outline {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--white);
+            color: var(--white);
+        }
+
+        .btn-outline:hover {
+            background: var(--white);
+            color: var(--primary-blue);
+            transform: translateY(-5px);
+        }
+
+        .btn-whatsapp {
+            background: #25D366;
+            color: var(--white);
+            box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-whatsapp:hover {
+            background: #128C7E;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(37, 211, 102, 0.4);
+        }
+
+        /* 1. Glassmorphism Navigation */
+        nav {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo i {
+            color: var(--primary-green);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 35px;
+        }
+
+        .nav-links li a {
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            position: relative;
+        }
+
+        .nav-links li a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 0;
+            background: var(--gradient);
+            transition: var(--transition);
+        }
+
+        .nav-links li a:hover::after {
+            width: 100%;
+        }
+
+        .menu-toggle {
+            display: none;
+            font-size: 1.8rem;
+            color: var(--primary-blue);
+            cursor: pointer;
+        }
+
+        /* 2. Modern Hero Section */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(10, 61, 98, 0.8), rgba(0, 184, 148, 0.7)), url('https://images.unsplash.com/photo-1585421514738-01798e348b17?auto=format&fit=crop&w=1920&q=80') center/cover;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--white);
+            padding: 0 5%;
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            animation: slideUp 1s ease-out forwards;
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 25px;
+            letter-spacing: -2px;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 3. Products Section */
+        .products-section { background: var(--bg-light); }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .product-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+            transition: var(--transition);
+            border: 1px solid rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 20px 50px rgba(0, 184, 148, 0.15);
+        }
+
+        .img-wrapper {
+            width: 100%;
+            height: 280px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .product-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .product-card:hover .product-img {
+            transform: scale(1.08);
+        }
+
+        .product-info {
+            padding: 25px 10px 10px;
+            text-align: left;
+        }
+
+        .product-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .product-desc {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .price-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .price-tag {
+            font-weight: 800;
+            color: var(--primary-blue);
+            font-size: 1.2rem;
+            background: rgba(0, 184, 148, 0.1);
+            padding: 5px 15px;
+            border-radius: 8px;
+            color: var(--primary-green);
+        }
+
+        /* 4. Features Section */
+        .features-section { background: var(--white); }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-box {
+            text-align: left;
+            padding: 40px 30px;
+            border-radius: 20px;
+            background: var(--bg-light);
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+
+        .feature-box:hover {
+            background: var(--white);
+            border-color: #eee;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+            transform: translateY(-5px);
+        }
+
+        .feature-icon-wrapper {
+            width: 70px;
+            height: 70px;
+            background: rgba(10, 61, 98, 0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            transition: var(--transition);
+        }
+
+        .feature-box:hover .feature-icon-wrapper {
+            background: var(--gradient);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-blue);
+            transition: var(--transition);
+        }
+
+        .feature-box:hover .feature-icon {
+            color: var(--white);
+        }
+
+        .feature-box h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .feature-box p { color: var(--text-light); }
+
+        /* 5. Distributor Section */
+        .distributor-section {
+            background: var(--primary-blue);
+            color: var(--white);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .distributor-section .section-title {
+            color: var(--white);
+            -webkit-text-fill-color: var(--white);
+        }
+
+        .form-container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 50px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 2;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px 20px;
+            border: 1px solid #e1e5ee;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: #f8f9fa;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1);
+        }
+
+        /* Footer */
+        footer {
+            background: #051e31;
+            color: #fff;
+            padding: 80px 5% 30px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .hero h1 { font-size: 3.5rem; }
+            .section-title { font-size: 2.2rem; }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                left: -100%;
+                width: 100%;
+                height: 100vh;
+                background: var(--white);
+                flex-direction: column;
+                justify-content: flex-start;
+                padding-top: 50px;
+                gap: 30px;
+                transition: var(--transition);
+            }
+            .nav-links.active { left: 0; }
+            .menu-toggle { display: block; }
+            .hero h1 { font-size: 2.8rem; }
+            .hero-buttons { flex-direction: column; }
+            .form-container { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav id="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-hands-bubbles"></i> Jamidara
+        </div>
+        <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#products">Products</a></li>
+            <li><a href="#features">Why Us</a></li>
+            <li><a href="#distributor">Distributorship</a></li>
+            <li><a href="https://wa.me/910000000000" class="btn btn-whatsapp" target="_blank"><i class="fa-brands fa-whatsapp"></i> Chat Now</a></li>
+        </ul>
+        <div class="menu-toggle"><i class="fa-solid fa-bars-staggered"></i></div>
+    </nav>
+
+    <header class="hero" id="home">
+        <div class="hero-content">
+            <div class="hero-badge">⭐ Premium Quality FMCG Products</div>
+            <h1>Powerful Cleaning for Every Indian Home</h1>
+            <p>High-performance cleaning solutions delivering sparkling results without breaking your budget.</p>
+            <div class="hero-buttons">
+                <a href="#products" class="btn btn-primary">Explore Products <i class="fa-solid fa-arrow-right"></i></a>
+                <a href="#distributor" class="btn btn-outline">Join as Distributor</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="products-section" id="products">
+        <h2 class="section-title">Our Premium Range</h2>
+        <p class="section-subtitle">Discover our highly effective formulas designed for tough Indian conditions.</p>
+        
+        <div class="product-grid">
+            
+            <div class="product-card">
+                <div class="img-wrapper">
+                    <img src="detergent-powder.jpg" alt="Detergent Powder" class="product-img">
+                </div>
+                <div class="product-info">
+                    <h3 class="product-title">Detergent Powder</h3>
+                    <p class="product-desc">Tough on stubborn stains, gentle on your everyday clothes. Keeps fabrics bright and fragrant.</p>
+                    <div class="price-wrapper">
+                        <span class="price-tag">₹100 / 2.5kg</span>
+                        <a href="#" style="color: var(--primary-blue); font-weight: 600;">Details <i class="fa-solid fa-angle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="img-wrapper">
+                    <img src="bathroom-cleaner.jpg" alt="Bathroom Cleaner" class="product-img">
+                </div>
+                <div class="product-info">
+                    <h3 class="product-title">Bathroom Cleaner</h3>
+                    <p class="product-desc">Instantly removes soap scum, hard water stains, and kills 99.9% germs for a sparkling tiles.</p>
+                    <div class="price-wrapper">
+                        <span class="price-tag">Premium Care</span>
+                        <a href="#" style="color: var(--primary-blue); font-weight: 600;">Details <i class="fa-solid fa-angle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="img-wrapper">
+                    <img src="toilet-cleaner.jpg" alt="Toilet Cleaner" class="product-img">
+                </div>
+                <div class="product-info">
+                    <h3 class="product-title">Toilet Cleaner</h3>
+                    <p class="product-desc">9.9x power formula that cuts through tough yellowish stains, leaving a germ-free shine.</p>
+                    <div class="price-wrapper">
+                        <span class="price-tag">9.9x Power</span>
+                        <a href="#" style="color: var(--primary-blue); font-weight: 600;">Details <i class="fa-solid fa-angle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="product-card">
+                <div class="img-wrapper">
+                    <img src="liquid-detergent.jpg" alt="Liquid Detergent Gel" class="product-img">
+                </div>
+                <div class="product-info">
+                    <h3 class="product-title">Liquid Detergent Gel</h3>
+                    <p class="product-desc">5X power liquid gel specifically formulated for modern washing machines and delicate fabrics.</p>
+                    <div class="price-wrapper">
+                        <span class="price-tag">Ultimate Care</span>
+                        <a href="#" style="color: var(--primary-blue); font-weight: 600;">Details <i class="fa-solid fa-angle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <h2 class="section-title">Why Partner With Us?</h2>
+        <p class="section-subtitle">We don't just sell products; we build long-term profitable relationships with our partners.</p>
+        
+        <div class="features-grid">
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-flask feature-icon"></i></div>
+                <h3>Advanced Formulation</h3>
+                <p>Lab-tested chemicals that offer superior cleaning power compared to local alternatives.</p>
+            </div>
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-chart-line feature-icon"></i></div>
+                <h3>High Profit Margins</h3>
+                <p>Designed to give our distributors and retailers the best ROI in the FMCG market.</p>
+            </div>
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-boxes-packing feature-icon"></i></div>
+                <h3>Attractive Packaging</h3>
+                <p>Modern, sturdy, and eye-catching packaging that sells itself on the retail shelves.</p>
+            </div>
+            <div class="feature-box">
+                <div class="feature-icon-wrapper"><i class="fa-solid fa-truck-fast feature-icon"></i></div>
+                <h3>Fast Supply Chain</h3>
+                <p>Reliable logistics ensuring you never run out of stock during peak demand seasons.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="distributor-section" id="distributor">
+        <div style="position: relative; z-index: 2; text-align: center; margin-bottom: 40px;">
+            <h2 class="section-title">Start Your Journey</h2>
+            <p style="opacity: 0.9; font-size: 1.1rem;">Fill the form below to get our exclusive distributorship pricing catalog.</p>
+        </div>
+        
+        <div class="form-container">
+            <form action="#" method="POST">
+                <input type="text" class="form-control" placeholder="Your Full Name" required>
+                <input type="tel" class="form-control" placeholder="WhatsApp Mobile Number" required>
+                <input type="text" class="form-control" placeholder="City / District Location" required>
+                <select class="form-control" required style="cursor: pointer;">
+                    <option value="" disabled selected>Select Your Business Type</option>
+                    <option value="retailer">Retail Shop / Kirana</option>
+                    <option value="wholesaler">Wholesaler / Agency</option>
+                    <option value="supermarket">Supermarket / Mart</option>
+                    <option value="new_business">Starting New Business</option>
+                </select>
+                <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 16px;">Submit Enquiry</button>
+            </form>
+        </div>
+    </section>
+
+    <footer style="text-align: center;">
+        <div class="logo" style="color: white; justify-content: center; margin-bottom: 20px;">
+            <i class="fa-solid fa-hands-bubbles"></i> Jamidara Group
+        </div>
+        <p style="color: #888; margin-bottom: 30px;">Premium Cleaning Solutions for India.</p>
+        <p style="color: #555; font-size: 0.9rem;">&copy; 2026 Jamidara Group. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // Mobile Menu
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        const icon = menuToggle.querySelector('i');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            icon.classList.toggle('fa-bars-staggered');
+            icon.classList.toggle('fa-xmark');
+        });
+
+        // Close menu on link click
+        document.querySelectorAll('.nav-links li a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                icon.classList.add('fa-bars-staggered');
+                icon.classList.remove('fa-xmark');
+            });
+        });
+
+        // Navbar shadow on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
+            } else {
+                nav.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.05)';
+            }
+        });
+    </script>
+</body>
+</html>

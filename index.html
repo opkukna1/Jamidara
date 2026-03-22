@@ -174,6 +174,13 @@
         .cart-header { padding: 20px 25px; background: var(--gradient); color: white; display: flex; justify-content: space-between; align-items: center; }
         .close-cart { cursor: pointer; font-size: 1.8rem; transition: 0.3s; }
         .close-cart:hover { transform: rotate(90deg); }
+        
+        /* Delivery Progress Bar */
+        .delivery-progress-container { background: #f1f2f6; border-radius: 10px; margin: 15px 25px 0; padding: 12px; text-align: center; }
+        .delivery-text { font-size: 0.9rem; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; }
+        .progress-bar-bg { width: 100%; height: 8px; background: #dfe4ea; border-radius: 10px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #ff9f43; width: 0%; transition: width 0.4s ease; }
+
         .cart-body { flex: 1; overflow-y: auto; padding: 20px 25px; display: flex; flex-direction: column; }
         
         .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
@@ -207,6 +214,11 @@
         .floating-bot:hover { transform: scale(1.1); }
 
         footer { background: #051e31; color: #fff; padding: 60px 5% 30px; text-align: center; }
+        
+        /* Social Links */
+        .social-links { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .social-links a { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); color: white; transition: 0.3s; font-size: 1.2rem; }
+        .social-links a:hover { background: var(--primary-green); transform: translateY(-3px); }
         
         @media (max-width: 992px) { .hero h1 { font-size: 3.2rem; } .section-title { font-size: 2.3rem; } }
         @media (max-width: 768px) { .hero h1 { font-size: 2.8rem; } .hero-buttons { flex-direction: column; } .form-container { padding: 30px 20px; } }
@@ -465,8 +477,15 @@
         <div class="logo" style="color: white; justify-content: center; margin-bottom: 20px;">
             <i class="fa-solid fa-hands-bubbles" style="color: var(--primary-green);"></i> Jamidara Group
         </div>
-        <p style="color: #888; margin-bottom: 30px;">💥 Premium Cleaning Solutions for India 💥</p>
-        <p style="color: #555; font-size: 0.9rem;">&copy; 2026 Jamidara Group ❤️. All Rights Reserved.</p>
+        
+        <div class="social-links">
+            <a href="#" target="_blank"><i class="fa-brands fa-facebook-f"></i></a>
+            <a href="#" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+        </div>
+
+        <p style="color: #888; margin-bottom: 10px;">💥 Premium Cleaning Solutions for India 💥</p>
+        <p style="color: #555; font-size: 0.9rem;">© 2026 Jamidara Group ❤️. All Rights Reserved.</p>
     </footer>
 
     <div class="overlay" id="cartOverlay" onclick="toggleCart()"></div>
@@ -476,6 +495,13 @@
             <i class="fa-solid fa-xmark close-cart" onclick="toggleCart()"></i>
         </div>
         
+        <div class="delivery-progress-container" id="delivery-progress-container" style="display: none;">
+            <div class="delivery-text" id="delivery-text">Add ₹500 more for FREE Delivery!</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+        </div>
+
         <div class="cart-body">
             <div class="cart-items" id="cart-items-container"></div>
 
@@ -505,10 +531,20 @@
         </div>
 
         <div class="cart-footer">
-            <div class="cart-total">
-                <span>Total:</span>
+            
+            <div class="cart-total" style="font-size: 1.1rem; margin-bottom: 5px; color: #666;">
+                <span>Subtotal:</span>
+                <span id="cart-subtotal-price">₹0</span>
+            </div>
+            <div class="cart-total" id="delivery-charge-row" style="font-size: 1.1rem; margin-bottom: 10px; color: #ff4757;">
+                <span>Delivery Charge:</span>
+                <span id="cart-delivery-price">+₹150</span>
+            </div>
+            <div class="cart-total" style="border-top: 1px solid #eee; padding-top: 10px;">
+                <span>Grand Total:</span>
                 <span id="cart-total-price">₹0</span>
             </div>
+
             <div class="checkout-form">
                 <input type="text" id="cust-name" placeholder="Full Name" required>
                 
@@ -532,7 +568,6 @@
     <a href="https://wa.me/916377856641?text=Hello%20Jamidara%20Group!" target="_blank" class="floating-bot">
         <i class="fa-brands fa-whatsapp"></i>
     </a>
-    
     <script>
         const WHATSAPP_NUMBER = "916377856641"; 
 
@@ -566,7 +601,6 @@
         // --- SMART CART LOGIC ---
         let cart = JSON.parse(localStorage.getItem('jamidara_cart')) || [];
         
-        // Product Name to ID mapping (For inline buttons)
         const productMap = {
             'Complete Care Combo': 'combo',
             'Detergent Powder (2.5kg)': 'detergent',
@@ -576,14 +610,12 @@
             'Jhadu / Broom': 'jhadu'
         };
 
-        // UI Load
         updateCartUI();
 
         function saveCart() { 
             localStorage.setItem('jamidara_cart', JSON.stringify(cart)); 
         }
 
-        // Sync inline buttons with current cart state
         function syncInlineButtons() {
             for (const [name, id] of Object.entries(productMap)) {
                 const item = cart.find(i => i.name === name);
@@ -604,7 +636,6 @@
             }
         }
 
-        // Called when standard "Add to Basket" or "+" is pressed
         function addToCart(name, price, openCart = false) {
             const existingItem = cart.find(item => item.name === name);
             if (existingItem) { 
@@ -622,12 +653,10 @@
             }
         }
 
-        // Called by "Order Now" button inline
         function addAndShowQty(name, price, id) {
             addToCart(name, price, false); 
         }
 
-        // Called by inline - and + buttons
         function updateQtyInline(name, amount, id) {
             const index = cart.findIndex(item => item.name === name);
             if (index !== -1) {
@@ -651,10 +680,17 @@
         function updateCartUI() {
             const container = document.getElementById('cart-items-container');
             const countBadge = document.getElementById('cart-count');
-            const totalPriceEl = document.getElementById('cart-total-price');
+            
+            const subtotalEl = document.getElementById('cart-subtotal-price');
+            const deliveryEl = document.getElementById('cart-delivery-price');
+            const totalEl = document.getElementById('cart-total-price');
+            
+            const progressContainer = document.getElementById('delivery-progress-container');
+            const progressFill = document.getElementById('progress-bar-fill');
+            const deliveryText = document.getElementById('delivery-text');
             
             container.innerHTML = '';
-            let total = 0; 
+            let subtotal = 0; 
             let count = 0;
 
             if (cart.length === 0) {
@@ -663,32 +699,65 @@
                     <i class="fa-solid fa-basket-shopping fa-3x" style="color:#eee; margin-bottom:15px;"></i>
                     <p>Your basket is empty</p>
                 </div>`;
-            } else {
-                cart.forEach((item, index) => {
-                    total += item.price * item.qty; 
-                    count += item.qty;
-                    container.innerHTML += `
-                        <div class="cart-item">
-                            <div class="cart-item-info" style="flex:1;">
-                                <h4>${item.name}</h4>
-                                <span class="cart-item-price">₹${item.price}</span>
-                                <div class="qty-controls">
-                                    <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
-                                    <span style="font-weight:700;">${item.qty}</span>
-                                    <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
-                                </div>
-                            </div>
-                            <button class="remove-btn" onclick="removeFromCart(${index})">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                });
-            }
-            countBadge.innerText = count; 
-            totalPriceEl.innerText = `₹${total}`;
+                progressContainer.style.display = 'none';
+                subtotalEl.innerText = '₹0';
+                deliveryEl.innerText = '+₹0';
+                totalEl.innerText = '₹0';
+                countBadge.innerText = count; 
+                syncInlineButtons();
+                return;
+            } 
             
-            // UI Sync function call
+            progressContainer.style.display = 'block';
+
+            cart.forEach((item, index) => {
+                subtotal += item.price * item.qty; 
+                count += item.qty;
+                container.innerHTML += `
+                    <div class="cart-item">
+                        <div class="cart-item-info" style="flex:1;">
+                            <h4>${item.name}</h4>
+                            <span class="cart-item-price">₹${item.price}</span>
+                            <div class="qty-controls">
+                                <button class="qty-btn" onclick="changeQty(${index}, -1)">-</button>
+                                <span style="font-weight:700;">${item.qty}</span>
+                                <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+                            </div>
+                        </div>
+                        <button class="remove-btn" onclick="removeFromCart(${index})">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            
+            countBadge.innerText = count; 
+
+            // FREE DELIVERY LOGIC (Threshold: ₹500)
+            let deliveryCharge = 150;
+            if (subtotal >= 500) {
+                deliveryCharge = 0;
+                progressFill.style.width = '100%';
+                progressFill.style.background = '#25D366'; 
+                deliveryText.innerHTML = '🎉 You unlocked <strong>FREE Delivery!</strong>';
+                deliveryEl.innerText = 'FREE';
+                deliveryEl.style.color = '#25D366';
+            } else {
+                deliveryCharge = 150;
+                let percent = (subtotal / 500) * 100;
+                progressFill.style.width = percent + '%';
+                progressFill.style.background = '#ff9f43'; 
+                let remaining = 500 - subtotal;
+                deliveryText.innerHTML = `Add <strong>₹${remaining}</strong> more for FREE Delivery!`;
+                deliveryEl.innerText = '+₹150';
+                deliveryEl.style.color = '#ff4757';
+            }
+
+            let grandTotal = subtotal + deliveryCharge;
+            
+            subtotalEl.innerText = `₹${subtotal}`;
+            totalEl.innerText = `₹${grandTotal}`;
+            
             syncInlineButtons();
         }
 
@@ -716,7 +785,6 @@
                     (position) => {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
-                        // Clean Google Maps Link fix
                         const mapLink = `https://www.google.com/maps?q=${lat},${lng}`;
                         
                         document.getElementById('cust-map-link').value = mapLink;
@@ -750,29 +818,33 @@
                 return; 
             }
 
-            // Using proper formatting for URL encoding
             let billText = `*⭐ NEW COD ORDER - JAMIDARA GROUP ⭐*\n\n*👤 Customer Details:*\nName: ${name}\n`;
             
             if (address) { billText += `Address: ${address}\n`; }
             if (mapLink) { billText += `📍 *Google Maps Location:*\n${mapLink}\n`; }
             
             billText += `\n*🛍️ Order Summary:*\n------------------------\n`;
-            let total = 0;
+            let subtotal = 0;
             
             cart.forEach(item => {
                 billText += `▪️ ${item.name}\n   Qty: ${item.qty} x ₹${item.price} = ₹${item.price * item.qty}\n`;
-                total += item.price * item.qty;
+                subtotal += item.price * item.qty;
             });
             
-            billText += `------------------------\n*💰 Total Amount to Pay (COD): ₹${total}*\n\n`;
+            // Delivery Charge Calculation for WhatsApp Message
+            let deliveryCharge = (subtotal >= 500) ? 0 : 150;
+            let grandTotal = subtotal + deliveryCharge;
+
+            billText += `------------------------\n`;
+            billText += `Subtotal: ₹${subtotal}\n`;
+            billText += `Delivery Charge: ${deliveryCharge === 0 ? 'FREE' : '₹150'}\n`;
+            billText += `*💰 Grand Total to Pay (COD): ₹${grandTotal}*\n\n`;
             billText += `Please process my order. Thank you!`;
 
-            // Encoding the final text to prevent map link from breaking the URL
             const encodedText = encodeURIComponent(billText);
 
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedText}`, '_blank');
             
-            // Clear cart & form after redirect
             cart = []; saveCart(); updateCartUI(); toggleCart();
             document.getElementById('cust-name').value = ''; 
             document.getElementById('cust-address').value = '';

@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
         /* CSS Variables */
         :root {
@@ -51,9 +50,9 @@
         .btn-outline { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 2px solid var(--white); color: var(--white); }
         .btn-outline:hover { background: var(--white); color: var(--primary-blue); transform: translateY(-5px); }
 
-        /* Navbar */
+        /* Navbar - Z-INDEX FIXED TO 1600 TO STAY ABOVE OVERLAY */
         nav {
-            position: fixed; width: 100%; top: 0; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(15px);
+            position: fixed; width: 100%; top: 0; z-index: 1600; background: var(--glass-bg); backdrop-filter: blur(15px);
             padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05); transition: var(--transition);
         }
         .logo { font-size: 1.8rem; font-weight: 800; color: var(--primary-blue); display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
@@ -63,17 +62,18 @@
         .nav-links li a { font-weight: 600; font-size: 1rem; position: relative; padding: 5px 0; transition: 0.3s; }
         .nav-links li a:hover { color: var(--primary-green); }
         
-        /* Mobile Menu Setup (Fixed Blur & Click Issues) */
+        /* Mobile Menu Setup */
         .menu-toggle { display: none; font-size: 1.8rem; color: var(--primary-blue); cursor: pointer; z-index: 1002; }
         .mobile-only { display: none; }
 
         @media (max-width: 992px) {
             .menu-toggle { display: block; }
             .nav-links {
-                position: fixed; top: 0; right: -100%; width: 300px; height: 100vh;
+                position: fixed; top: 0; right: -100%; width: 300px; 
+                height: 100%; height: 100dvh; /* FIXED HEIGHT FOR MOBILE BROWSER */
                 background: #ffffff; flex-direction: column; justify-content: flex-start;
                 padding: 100px 30px 30px; gap: 20px; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-                box-shadow: -10px 0 30px rgba(0,0,0,0.15); z-index: 1001; align-items: flex-start;
+                box-shadow: -10px 0 30px rgba(0,0,0,0.15); align-items: flex-start; overflow-y: auto;
             }
             .nav-links.active { right: 0; }
             .nav-links li { width: 100%; }
@@ -135,8 +135,6 @@
         .combo-card { border: 2px solid #ff9f43; box-shadow: 0 15px 35px rgba(255, 159, 67, 0.15); background: linear-gradient(to bottom, #ffffff, #fffdfa); }
         .combo-badge { position: absolute; top: 20px; left: 20px; background: #ff9f43; color: #fff; padding: 6px 18px; font-weight: 700; border-radius: 8px; z-index: 10; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4); }
 
-        /* Add Cart & Other Styles here (Will be continued in Part 2) */
-        
         /* Features Section */
         .features-section { background: var(--white); }
         .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-top: 40px; }
@@ -155,17 +153,18 @@
         .form-control { width: 100%; padding: 15px 20px; border: 1px solid #e1e5ee; border-radius: 12px; font-size: 1rem; background: #f8f9fa; transition: var(--transition); margin-bottom: 20px; }
         .form-control:focus { outline: none; border-color: var(--primary-green); background: var(--white); box-shadow: 0 0 0 4px rgba(0, 184, 148, 0.1); }
         
-        /* Cart Sidebar & Overlay Styles */
+        /* Cart Sidebar & Overlay Styles - HEIGHT & OVERFLOW FIXED */
         .cart-sidebar {
-            position: fixed; top: 0; right: -100%; width: 420px; max-width: 100%; height: 100vh;
+            position: fixed; top: 0; right: -100%; width: 420px; max-width: 100%; 
+            height: 100%; height: 100dvh; /* FIXED HEIGHT FOR MOBILE BROWSER */
             background: var(--white); box-shadow: -10px 0 50px rgba(0,0,0,0.2);
             transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); z-index: 2000; display: flex; flex-direction: column;
         }
         .cart-sidebar.open { right: 0; }
-        .cart-header { padding: 25px; background: var(--gradient); color: white; display: flex; justify-content: space-between; align-items: center; }
+        .cart-header { padding: 20px 25px; background: var(--gradient); color: white; display: flex; justify-content: space-between; align-items: center; }
         .close-cart { cursor: pointer; font-size: 1.8rem; transition: 0.3s; }
         .close-cart:hover { transform: rotate(90deg); }
-        .cart-body { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; }
+        .cart-body { flex: 1; overflow-y: auto; padding: 20px 25px; display: flex; flex-direction: column; }
         
         .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
         .cart-item-info h4 { font-size: 1rem; color: var(--text-dark); margin-bottom: 5px; }
@@ -185,13 +184,17 @@
         .btn-suggest { background: var(--primary-blue); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1.2rem; transition: 0.3s; }
         .btn-suggest:hover { background: var(--primary-green); transform: scale(1.1); }
 
-        .cart-footer { padding: 25px; border-top: 1px solid #eee; background: #fff; box-shadow: 0 -10px 20px rgba(0,0,0,0.03); }
-        .cart-total { display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: var(--text-dark); }
-        .checkout-form input { width: 100%; padding: 14px; margin-bottom: 12px; border: 2px solid #eee; border-radius: 10px; font-size: 1rem; }
+        .cart-footer { 
+            padding: 20px 25px 40px; /* EXTRA BOTTOM PADDING FOR PHONE SWIPE BAR */
+            border-top: 1px solid #eee; background: #fff; box-shadow: 0 -10px 20px rgba(0,0,0,0.03); 
+        }
+        .cart-total { display: flex; justify-content: space-between; font-size: 1.4rem; font-weight: 800; margin-bottom: 15px; color: var(--text-dark); }
+        .checkout-form input { width: 100%; padding: 12px; margin-bottom: 10px; border: 2px solid #eee; border-radius: 10px; font-size: 1rem; }
         .checkout-form input:focus { outline: none; border-color: var(--primary-green); }
         .btn-checkout { width: 100%; padding: 16px; background: #25D366; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
         .btn-checkout:hover { background: #1da851; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3); }
 
+        /* OVERLAY Z-INDEX FIXED TO STAY BEHIND NAVBAR */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1500; display: none; opacity: 0; transition: 0.3s; }
         .overlay.active { display: block; opacity: 1; }
         .floating-bot { position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px; background: #25D366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 10px 30px rgba(37, 211, 102, 0.4); cursor: pointer; z-index: 999; transition: 0.3s; }
@@ -202,6 +205,23 @@
         @media (max-width: 992px) { .hero h1 { font-size: 3.2rem; } .section-title { font-size: 2.3rem; } }
         @media (max-width: 768px) { .hero h1 { font-size: 2.8rem; } .hero-buttons { flex-direction: column; } .form-container { padding: 30px 20px; } }
     </style>
+
+        :root {
+            --primary-blue: #0A3D62;
+            --primary-green: #00b894;
+            --gradient: linear-gradient(135deg, #0A3D62, #00b894);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+            --bg-light: #f5f6fa;
+            --white: #ffffff;
+            --transition: all 0.3s ease;
+        }
+
+        /* Base Styles */
+        * { 
+            margin: 0; padding: 0; box-sizing: border-box; 
+
 </head>
 <body>
 

@@ -428,6 +428,29 @@
                     </div>
                 </div>
             </div>
+                        <!-- White Phinyle Product -->
+            <div class="product-card">
+                <div class="img-wrapper"><img src="white-phinyle.jpg" alt="White Phinyle" class="product-img"></div>
+                <div class="product-info">
+                    <div>
+                        <h3 class="product-title">White Phinyle</h3>
+                        <p class="product-desc">Kills 99.9% germs and leaves a long-lasting fresh fragrance on your floors.</p>
+                    </div>
+                    <div>
+                        <div class="price-wrapper"><span class="price-tag">₹35</span><span style="color: #888; font-weight: 600;">/ Bottle</span></div>
+                        <div class="btn-add-container" id="container-phinyle">
+                            <button class="btn-add" id="btn-phinyle" onclick="addAndShowQty('White Phinyle', 35, 'phinyle')">
+                                <i class="fa-solid fa-cart-plus"></i> Order Now
+                            </button>
+                            <div class="qty-controls-card" id="qty-phinyle">
+                                <button onclick="updateQtyInline('White Phinyle', -1, 'phinyle')">-</button>
+                                <span id="val-phinyle">1</span>
+                                <button onclick="updateQtyInline('White Phinyle', 1, 'phinyle')">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </section>
@@ -610,7 +633,8 @@
             'Liquid Detergent (1kg)': 'liquid',
             'Bathroom Cleaner': 'bathroom',
             'Toilet Cleaner': 'toilet',
-            'Jhadu / Broom': 'jhadu'
+            'Jhadu / Broom': 'jhadu',
+            'White Phinyle': 'phinyle'
         };
 
         updateCartUI();

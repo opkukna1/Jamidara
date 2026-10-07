@@ -1,50 +1,72 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4338ca">
 <title>Covering Letter Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.47.4/docxtemplater.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head><body>
-<header class="top"><button id="menuBtn" aria-label="Menu">☰</button>
-<div><h1>Covering Letter Generator</h1><p>Generate official covering letters quickly and accurately</p></div></header>
+<div class="bgblob b1"></div><div class="bgblob b2"></div>
+<header class="top">
+  <button id="menuBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+  <div class="brand"><div class="logo">✉</div><div><h1>Covering Letter Generator</h1><p>Generate official covering letters quickly and accurately</p></div></div>
+</header>
 <div id="scrim"></div>
 <nav id="drawer">
-<a data-view="dashboard">🏠 Dashboard</a><a data-view="generate">📄 Generate Covering Letter</a>
-<a data-view="data">📊 Dispatch Data</a><a data-view="upload">⬆ Upload Dispatch File</a>
-<a data-view="settings">⚙ Settings</a><a data-view="about">ℹ About</a></nav>
+  <div class="dhead"><div class="logo">✉</div><div><b>Covering Letter</b><small>Government Office Tool</small></div></div>
+  <a data-view="dashboard" class="on"><i>🏠</i>Dashboard</a>
+  <a data-view="generate"><i>📄</i>Generate Covering Letter</a>
+  <a data-view="data"><i>📊</i>Dispatch Data</a>
+  <a data-view="upload"><i>⬆</i>Upload Dispatch File</a>
+  <a data-view="settings"><i>⚙</i>Settings</a>
+  <a data-view="about"><i>ℹ</i>About</a>
+  <div class="dfoot">Version 1.0</div>
+</nav>
 <main>
-<section id="v-dashboard" class="view"><div class="card"><h2>Dashboard</h2>
-<div class="stats"><div><b id="stD">–</b>Dispatch records</div><div><b id="stM">–</b>Mappings</div><div><b id="stY">–</b>Years</div></div>
-<button class="primary" data-view="generate">Generate Covering Letter</button></div></section>
+<section id="v-dashboard" class="view">
+  <div class="hero"><small>नमस्ते 👋</small><h2>Covering letters,<br>ready in seconds.</h2><p>Pick year, district and gram panchayat — the DOCX is generated from your official template.</p>
+    <button class="cta" data-view="generate">Generate Covering Letter →</button></div>
+  <div class="stats">
+    <div class="stat"><i>📦</i><b id="stD">–</b><span>Dispatch records</span></div>
+    <div class="stat"><i>🗺</i><b id="stM">–</b><span>Mappings</span></div>
+    <div class="stat"><i>📅</i><b id="stY">–</b><span>Years</span></div></div>
+  <div class="tiles">
+    <button class="tile" data-view="generate"><i>📄</i><b>Generate</b><span>Create DOCX letter</span></button>
+    <button class="tile" data-view="data"><i>📊</i><b>Dispatch Data</b><span>Search &amp; filter</span></button>
+    <button class="tile" data-view="upload"><i>⬆</i><b>Upload</b><span>Update Dispatch.xlsx</span></button></div>
+</section>
 
-<section id="v-generate" class="view"><div class="card"><h2>Generate Covering Letter</h2>
-<label>Year<select id="year"></select></label>
-<label>District<select id="dist"></select></label>
-<label>Panchayat Samiti<select id="ps"></select></label>
-<label>Gram Panchayat<select id="gp"></select></label>
-<div id="info" class="info"></div><div id="warn" class="warn"></div>
-<button id="genBtn" class="primary big">Generate Covering Letter</button></div></section>
+<section id="v-generate" class="view"><div class="card"><div class="ch"><i>📄</i><div><h2>Generate Covering Letter</h2><p>Fill the 4 steps below</p></div></div>
+  <label><span class="step">1</span>Year<select id="year"></select></label>
+  <label><span class="step">2</span>District<select id="dist"></select></label>
+  <label><span class="step">3</span>Panchayat Samiti<select id="ps"></select></label>
+  <label><span class="step">4</span>Gram Panchayat<select id="gp"></select></label>
+  <div id="info" class="info"></div><div id="warn" class="warn"></div>
+  <button id="genBtn" class="primary big">Generate Covering Letter</button></div></section>
 
-<section id="v-data" class="view"><div class="card"><h2>Dispatch Data</h2>
-<div class="filters"><select id="fYear"></select><select id="fDist"></select><select id="fPs"></select><select id="fStatus"></select>
-<input id="fSearch" placeholder="Search GP / Dispatch Number"></div>
-<div id="dataOut"></div></div></section>
+<section id="v-data" class="view"><div class="card"><div class="ch"><i>📊</i><div><h2>Dispatch Data</h2><p>Search and filter all records</p></div></div>
+  <div class="filters"><select id="fYear"></select><select id="fDist"></select><select id="fPs"></select><select id="fStatus"></select>
+  <input id="fSearch" placeholder="🔍  Search GP / Dispatch Number"></div>
+  <div id="dataOut"></div></div></section>
 
-<section id="v-upload" class="view"><div class="card"><h2>Upload Dispatch File</h2>
-<div id="loginBox"><p>Admin login required.</p><input id="email" type="email" placeholder="Admin email"><input id="pass" type="password" placeholder="Password"><button id="loginBtn" class="primary">Login</button></div>
-<div id="upBox" hidden><p>Logged in as <b id="who"></b> <button id="logoutBtn" class="link">Logout</button></p>
-<label>Year for this file<select id="upYear"></select></label>
-<label>Dispatch .xlsx file<input type="file" id="file" accept=".xlsx"></label>
-<div id="fileInfo" class="info"></div><div id="preview" class="scroll"></div>
-<button id="prevBtn" disabled>Preview Data</button> <button id="upBtn" class="primary" disabled>Upload / Update Firestore</button>
-<div id="upRes" class="info"></div></div></div></section>
+<section id="v-upload" class="view"><div class="card"><div class="ch"><i>⬆</i><div><h2>Upload Dispatch File</h2><p>Admin only · updates Firestore safely</p></div></div>
+  <div id="loginBox"><p class="muted">🔒 Admin login required</p><input id="email" type="email" placeholder="Admin email"><input id="pass" type="password" placeholder="Password"><button id="loginBtn" class="primary big">Login</button></div>
+  <div id="upBox" hidden><p class="muted">Logged in as <b id="who"></b> · <button id="logoutBtn" class="link">Logout</button></p>
+  <label>Year for this file<select id="upYear"></select></label>
+  <label>Dispatch .xlsx file<input type="file" id="file" accept=".xlsx"></label>
+  <div id="fileInfo" class="info"></div><div id="preview" class="scroll"></div>
+  <div class="row"><button id="prevBtn" disabled>👁 Preview Data</button><button id="upBtn" class="primary" disabled>Upload / Update Firestore</button></div>
+  <div id="upRes" class="info"></div></div></div></section>
 
-<section id="v-settings" class="view"><div class="card"><h2>Settings</h2>
-<p>Firestore data is cached in memory for this session.</p><button id="reloadBtn">Reload data from Firestore</button></div></section>
-<section id="v-about" class="view"><div class="card"><h2>Covering Letter Generator</h2>
-<p>A digital tool for generating official covering letters from centralized dispatch data.</p><p><b>Version 1.0</b></p></div></section>
+<section id="v-settings" class="view"><div class="card"><div class="ch"><i>⚙</i><div><h2>Settings</h2><p>Data cache</p></div></div>
+  <p class="muted">Firestore data is cached in memory for this session.</p><button id="reloadBtn" class="primary">🔄 Reload data from Firestore</button></div></section>
+
+<section id="v-about" class="view"><div class="card center"><div class="logo xl">✉</div><h2>Covering Letter Generator</h2>
+  <p class="muted">A digital tool for generating official covering letters from centralized dispatch data.</p><span class="chip">Version 1.0</span></div></section>
 </main>
 <div id="toasts"></div>
 <script type="module" src="app.js"></script>

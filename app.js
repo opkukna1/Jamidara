@@ -14,7 +14,7 @@ window.addEventListener('error', ev => { if (!document.body.classList.contains('
 // ---- Field mapping from Firestore dispatch fields to template placeholders (edit if needed) ----
 const F = { dispatchNo: 'Audit Party No', dispatchDate: 'Planned Start Date', paraNo: 'Converted to Para' };
 // Admin Google accounts (lowercase). Only these see Upload. Firestore rules must list the same emails.
-const ADMIN_EMAILS = ['admin@gmail.com'];
+const ADMIN_EMAILS = ['opsiddh41@gmail.com'];
 // Report types: template file inside /template and download filename prefix.
 const REPORTS = { ams: { tpl: 'ams-report.docx', prefix: 'AMS_Report' }, ybc: { tpl: 'year-book-closing.docx', prefix: 'Year_Book_Closing' }, intim: { tpl: 'intimation-report.docx', prefix: 'Intimation_Report' } };
 const REQUIRED = ['Unit Name', 'Unit ID', 'Parent Name', 'District Name'];

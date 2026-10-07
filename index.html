@@ -1,263 +1,51 @@
 <!DOCTYPE html>
-<html lang="hi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audit Management Portal</title>
-    <!-- Tailwind CSS for Mobile-First Responsive Design -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Covering Letter Generator</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.47.4/docxtemplater.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head><body>
+<header class="top"><button id="menuBtn" aria-label="Menu">☰</button>
+<div><h1>Covering Letter Generator</h1><p>Generate official covering letters quickly and accurately</p></div></header>
+<div id="scrim"></div>
+<nav id="drawer">
+<a data-view="dashboard">🏠 Dashboard</a><a data-view="generate">📄 Generate Covering Letter</a>
+<a data-view="data">📊 Dispatch Data</a><a data-view="upload">⬆ Upload Dispatch File</a>
+<a data-view="settings">⚙ Settings</a><a data-view="about">ℹ About</a></nav>
+<main>
+<section id="v-dashboard" class="view"><div class="card"><h2>Dashboard</h2>
+<div class="stats"><div><b id="stD">–</b>Dispatch records</div><div><b id="stM">–</b>Mappings</div><div><b id="stY">–</b>Years</div></div>
+<button class="primary" data-view="generate">Generate Covering Letter</button></div></section>
 
-    <!-- Top Navigation Header -->
-    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-file-signature text-2xl"></i>
-                <h1 class="text-xl font-bold tracking-wide">Audit Dispatch Portal</h1>
-            </div>
-            <span class="bg-indigo-800 text-xs px-2.5 py-1 rounded-full border border-indigo-400">v1.0 Live</span>
-        </div>
-    </header>
+<section id="v-generate" class="view"><div class="card"><h2>Generate Covering Letter</h2>
+<label>Year<select id="year"></select></label>
+<label>District<select id="dist"></select></label>
+<label>Panchayat Samiti<select id="ps"></select></label>
+<label>Gram Panchayat<select id="gp"></select></label>
+<div id="info" class="info"></div><div id="warn" class="warn"></div>
+<button id="genBtn" class="primary big">Generate Covering Letter</button></div></section>
 
-    <!-- Main Container -->
-    <main class="max-w-5xl mx-auto p-4 sm:p-6">
+<section id="v-data" class="view"><div class="card"><h2>Dispatch Data</h2>
+<div class="filters"><select id="fYear"></select><select id="fDist"></select><select id="fPs"></select><select id="fStatus"></select>
+<input id="fSearch" placeholder="Search GP / Dispatch Number"></div>
+<div id="dataOut"></div></div></section>
 
-        <!-- API Server URL Configuration -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                Backend API Server URL (Render.com)
-            </label>
-            <input type="text" id="apiUrl" 
-                class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none" 
-                placeholder="https://your-app-name.onrender.com" 
-                value="https://your-app-name.onrender.com">
-        </div>
+<section id="v-upload" class="view"><div class="card"><h2>Upload Dispatch File</h2>
+<div id="loginBox"><p>Admin login required.</p><input id="email" type="email" placeholder="Admin email"><input id="pass" type="password" placeholder="Password"><button id="loginBtn" class="primary">Login</button></div>
+<div id="upBox" hidden><p>Logged in as <b id="who"></b> <button id="logoutBtn" class="link">Logout</button></p>
+<label>Year for this file<select id="upYear"></select></label>
+<label>Dispatch .xlsx file<input type="file" id="file" accept=".xlsx"></label>
+<div id="fileInfo" class="info"></div><div id="preview" class="scroll"></div>
+<button id="prevBtn" disabled>Preview Data</button> <button id="upBtn" class="primary" disabled>Upload / Update Firestore</button>
+<div id="upRes" class="info"></div></div></div></section>
 
-        <!-- Modular Navigation Tabs -->
-        <div class="flex overflow-x-auto bg-white p-1 rounded-xl shadow-sm border border-gray-200 mb-6 space-x-1">
-            <button onclick="switchTab('covering-letter')" id="tab-covering-letter" 
-                class="tab-btn active-tab flex-1 py-2.5 px-4 text-sm font-semibold rounded-lg flex items-center justify-center space-x-2 whitespace-nowrap">
-                <i class="fa-solid fa-envelope-open-text"></i>
-                <span>Covering Letter</span>
-            </button>
-            <button onclick="switchTab('ats')" id="tab-ats" 
-                class="tab-btn flex-1 py-2.5 px-4 text-sm font-semibold rounded-lg flex items-center justify-center space-x-2 text-gray-400 hover:text-gray-600 whitespace-nowrap">
-                <i class="fa-solid fa-chart-line"></i>
-                <span>ATS (Audit Tracking)</span>
-                <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">Soon</span>
-            </button>
-            <button onclick="switchTab('progress-report')" id="tab-progress-report" 
-                class="tab-btn flex-1 py-2.5 px-4 text-sm font-semibold rounded-lg flex items-center justify-center space-x-2 text-gray-400 hover:text-gray-600 whitespace-nowrap">
-                <i class="fa-solid fa-clipboard-list"></i>
-                <span>Progress Report</span>
-                <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">Soon</span>
-            </button>
-            <button onclick="switchTab('mappings')" id="tab-mappings" 
-                class="tab-btn flex-1 py-2.5 px-4 text-sm font-semibold rounded-lg flex items-center justify-center space-x-2 text-gray-400 hover:text-gray-600 whitespace-nowrap">
-                <i class="fa-solid fa-database"></i>
-                <span>Master DB</span>
-            </button>
-        </div>
-
-        <!-- TAB 1: COVERING LETTER GENERATOR -->
-        <div id="content-covering-letter" class="tab-content">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 sm:p-8">
-                <div class="mb-6">
-                    <h2 class="text-lg font-bold text-gray-800">Generate Audit Covering Letters</h2>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Dispatch Excel aur Covering Letter DOCX Template upload karein. Automatic AI mapping check hokar letters generate ho jayenge.
-                    </p>
-                </div>
-
-                <form id="dispatchForm" onsubmit="handleDispatchSubmit(event)" class="space-y-5">
-                    
-                    <!-- File Upload 1: Dispatch Excel -->
-                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-indigo-500 transition-colors bg-gray-50">
-                        <i class="fa-solid fa-file-excel text-green-600 text-3xl mb-2"></i>
-                        <label class="block text-sm font-medium text-gray-700 cursor-pointer">
-                            <span>1. Upload Dispatch Excel File (.xlsx)</span>
-                            <input type="file" id="dispatchFile" accept=".xlsx" required class="hidden" onchange="updateFileName(this, 'dispatchFileName')">
-                        </label>
-                        <p id="dispatchFileName" class="text-xs text-indigo-600 font-semibold mt-2">No file selected</p>
-                    </div>
-
-                    <!-- File Upload 2: DOCX Template -->
-                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-indigo-500 transition-colors bg-gray-50">
-                        <i class="fa-solid fa-file-word text-blue-600 text-3xl mb-2"></i>
-                        <label class="block text-sm font-medium text-gray-700 cursor-pointer">
-                            <span>2. Upload Covering Letter Template (.docx)</span>
-                            <input type="file" id="templateFile" accept=".docx" required class="hidden" onchange="updateFileName(this, 'templateFileName')">
-                        </label>
-                        <p id="templateFileName" class="text-xs text-indigo-600 font-semibold mt-2">No file selected</p>
-                    </div>
-
-                    <!-- Process Button -->
-                    <button type="submit" id="submitBtn" 
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 px-4 rounded-xl font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-bolt"></i>
-                        <span>Process & Download Letters (ZIP)</span>
-                    </button>
-                </form>
-
-                <!-- Status Progress & Alert -->
-                <div id="statusBox" class="hidden mt-6 p-4 rounded-xl border text-sm"></div>
-            </div>
-        </div>
-
-        <!-- TAB 2: ATS (AUDIT TRACKING SYSTEM - FUTURE MODULE) -->
-        <div id="content-ats" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
-                <i class="fa-solid fa-chart-line text-indigo-400 text-5xl mb-3"></i>
-                <h3 class="text-lg font-bold text-gray-800">Audit Tracking System (ATS)</h3>
-                <p class="text-sm text-gray-500 mt-2">Yeh module future updates mein active hoga. Yahan se saare pending audit paras aur tracking dashboard dikhega.</p>
-            </div>
-        </div>
-
-        <!-- TAB 3: PROGRESS REPORT (FUTURE MODULE) -->
-        <div id="content-progress-report" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
-                <i class="fa-solid fa-clipboard-list text-indigo-400 text-5xl mb-3"></i>
-                <h3 class="text-lg font-bold text-gray-800">Progress Report Generator</h3>
-                <p class="text-sm text-gray-500 mt-2">Monthly / Quarterly Progress Reports compile aur export karne ka function yahan add hoga.</p>
-            </div>
-        </div>
-
-        <!-- TAB 4: MASTER MAPPINGS DB -->
-        <div id="content-mappings" class="tab-content hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-bold text-gray-800">Firestore Master Mappings</h3>
-                    <button onclick="fetchMasterMappings()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-semibold">
-                        <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
-                    </button>
-                </div>
-                <div id="mappingsList" class="text-xs text-gray-500 overflow-x-auto">
-                    Click Refresh to view stored Hindi Gram Panchayat mappings.
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <style>
-        .active-tab {
-            background-color: #4f46e5;
-            color: white;
-        }
-    </style>
-
-    <script>
-        // Tab Switcher Logic
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('active-tab');
-                el.classList.add('text-gray-400');
-            });
-
-            document.getElementById(`content-${tabName}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            activeBtn.classList.add('active-tab');
-            activeBtn.classList.remove('text-gray-400');
-        }
-
-        // File name update preview
-        function updateFileName(input, targetId) {
-            const fileName = input.files[0] ? input.files[0].name : 'No file selected';
-            document.getElementById(targetId).innerText = fileName;
-        }
-
-        // Submit Dispatch Form to Render API
-        async function handleDispatchSubmit(e) {
-            e.preventDefault();
-            
-            const apiUrl = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
-            const dispatchFile = document.getElementById('dispatchFile').files[0];
-            const templateFile = document.getElementById('templateFile').files[0];
-            const submitBtn = document.getElementById('submitBtn');
-            const statusBox = document.getElementById('statusBox');
-
-            if (!apiUrl) {
-                alert("Kripya Render.com Backend URL enter karein.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('dispatch_file', dispatchFile);
-            formData.append('template_file', templateFile);
-
-            // UI Loading State
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Processing AI & Generating ZIP...</span>`;
-            statusBox.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-green-50', 'text-green-700');
-            statusBox.classList.add('bg-blue-50', 'text-blue-700', 'border-blue-200');
-            statusBox.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> File upload ho rahi hai. Unmapped Gram Panchayats Gemini AI se translate ho kar docx ZIP ready ho raha hai...`;
-
-            try {
-                const response = await fetch(`${apiUrl}/api/v1/dispatch/process`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.detail || "Processing mein problem aayi.");
-                }
-
-                // Download ZIP file
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = `Covering_Letters_${new Date().toISOString().slice(0,10)}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-
-                statusBox.classList.replace('bg-blue-50', 'bg-green-50');
-                statusBox.classList.replace('text-blue-700', 'text-green-700');
-                statusBox.classList.replace('border-blue-200', 'border-green-200');
-                statusBox.innerHTML = `<i class="fa-solid fa-check-circle mr-2"></i> Success! Covering Letters ZIP automatically download ho gaya hai.`;
-
-            } catch (err) {
-                statusBox.classList.replace('bg-blue-50', 'bg-red-50');
-                statusBox.classList.replace('text-blue-700', 'text-red-700');
-                statusBox.classList.replace('border-blue-200', 'border-red-200');
-                statusBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> Error: ${err.message}`;
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<i class="fa-solid fa-bolt"></i> <span>Process & Download Letters (ZIP)</span>`;
-            }
-        }
-
-        // Fetch Master Mappings from Firestore
-        async function fetchMasterMappings() {
-            const apiUrl = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
-            const mappingsList = document.getElementById('mappingsList');
-            mappingsList.innerHTML = "Loading database entries...";
-
-            try {
-                const res = await fetch(`${apiUrl}/api/v1/mappings/list`);
-                const data = await res.json();
-                
-                if (data.length === 0) {
-                    mappingsList.innerHTML = "No mappings found in Firestore.";
-                    return;
-                }
-
-                let html = `<table class="w-full text-left border-collapse border border-gray-200 mt-2 text-xs">
-                    <thead><tr class="bg-gray-100"><th class="p-2 border">GP (English)</th><th class="p-2 border">GP (Hindi)</th><th class="p-2 border">Panchayat Samiti</th></tr></thead><tbody>`;
-                data.forEach(item => {
-                    html += `<tr><td class="p-2 border">${item.GP_EN || ''}</td><td class="p-2 border font-semibold text-indigo-700">${item.GP_HI || ''}</td><td class="p-2 border">${item.PS_HI || item.PS_EN || ''}</td></tr>`;
-                });
-                html += `</tbody></table>`;
-                mappingsList.innerHTML = html;
-            } catch (err) {
-                mappingsList.innerHTML = `<span class="text-red-500">Failed to fetch mappings: ${err.message}</span>`;
-            }
-        }
-    </script>
-</body>
-</html>
+<section id="v-settings" class="view"><div class="card"><h2>Settings</h2>
+<p>Firestore data is cached in memory for this session.</p><button id="reloadBtn">Reload data from Firestore</button></div></section>
+<section id="v-about" class="view"><div class="card"><h2>Covering Letter Generator</h2>
+<p>A digital tool for generating official covering letters from centralized dispatch data.</p><p><b>Version 1.0</b></p></div></section>
+</main>
+<div id="toasts"></div>
+<script type="module" src="app.js"></script>
+</body></html>

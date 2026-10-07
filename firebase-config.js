@@ -1,11 +1,10 @@
-// Firebase web config (ye keys public hoti hain, GitHub par rakhna safe hai).
-// Firebase Console > Project settings > General > Your apps > Web app > firebaseConfig se
-// sirf neeche "YAHAN ..." wali 3 values paste karo. Baaki project ke hisaab se bhar di gayi hain.
-export const firebaseConfig = {
-  apiKey: "YAHAN_API_KEY_PASTE_KARO",
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyB6vFcpqboymXfhn6QesgAZEYOE5EBbyh4",
   authDomain: "instaquiz-9cc2f.firebaseapp.com",
   projectId: "instaquiz-9cc2f",
-  storageBucket: "instaquiz-9cc2f.appspot.com",   // console mein .firebasestorage.app dikhe to wahi likho
-  messagingSenderId: "YAHAN_SENDER_ID_PASTE_KARO",
-  appId: "YAHAN_APP_ID_PASTE_KARO"
+  storageBucket: "instaquiz-9cc2f.firebasestorage.app",
+  messagingSenderId: "265258409167",
+  appId: "1:265258409167:web:d4cd66b7bb157b8f6b6bba",
+  measurementId: "G-TDTKQM6VQ4"
 };

@@ -175,13 +175,14 @@ function renderData() {
 // ---------- Dispatch upload (admin only) ----------
 function pad(n) { return String(n).padStart(2, '0'); }
 const fmt = v => v instanceof Date ? `${pad(v.getDate())}/${pad(v.getMonth() + 1)}/${v.getFullYear()}` : (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : v);
+const canon = k => { k = k.trim(); const l = k.toLowerCase(); return l === 'unit id' ? 'Unit ID' : l === 'parent unit id' ? 'Parent Unit ID' : k; };
 async function readExcel(file, hdr = 'Unit ID') {
   const wb = XLSX.read(await file.arrayBuffer(), { cellDates: true });
   // detect the right sheet: "Users" if present, else first sheet containing "Unit ID"
   const names = wb.SheetNames;
-  const pick = names.find(n => n.toLowerCase() === 'users') || names.find(n => (XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1 })[0] || []).includes(hdr));
+  const pick = names.find(n => n.toLowerCase() === 'users') || names.find(n => (XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1 })[0] || []).some(c => String(c).trim().toLowerCase() === hdr.toLowerCase()));
   if (!pick) throw new Error('NO_SHEET');
-  return XLSX.utils.sheet_to_json(wb.Sheets[pick], { defval: '' }).map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.trim(), fmt(v)])));
+  return XLSX.utils.sheet_to_json(wb.Sheets[pick], { defval: '' }).map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [canon(k), fmt(v)])));
 }
 function validateDispatchFile(rows) {
   if (!rows.length) return 'The file has no data rows.';

@@ -94,5 +94,11 @@
   <p class="muted">A digital tool for generating official covering letters from centralized dispatch data.</p><span class="chip">Version 1.0</span></div></section>
 </main>
 <div id="toasts"></div>
-<script type="module" src="app.js"></script>
+<script>
+/* Fallback: if app.js fails to load, the button explains why instead of doing nothing. app.js replaces this handler. */
+(function(){var b=document.getElementById('gBtn'),l=document.getElementById('lerr');
+b.onclick=function(){l.textContent='App load nahi hui. Saari files (app.js, js/ folder, firebase-config.js) check karo aur page hard refresh karo.';};
+window.addEventListener('error',function(e){l.textContent='Error: '+(e.message||'file load nahi hui');});})();
+</script>
+<script type="module" src="app.js" onerror="document.getElementById('lerr').textContent='app.js load nahi hua - file ka naam/jagah check karo.'"></script>
 </body></html>

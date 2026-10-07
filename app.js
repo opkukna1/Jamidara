@@ -16,7 +16,7 @@ const F = { dispatchNo: 'Audit Party No', dispatchDate: 'Planned Start Date', pa
 // Admin Google accounts (lowercase). Only these see Upload. Firestore rules must list the same emails.
 const ADMIN_EMAILS = ['opsiddh41@gmail.com'];
 // Report types: template file inside /template and download filename prefix.
-const REPORTS = { ams: { tpl: 'ams-report.docx', prefix: 'AMS_Report' }, ybc: { tpl: 'year-book-closing.docx', prefix: 'Year_Book_Closing' }, intim: { tpl: 'intimation-report.docx', prefix: 'Intimation_Report' } };
+const REPORTS = { ams: { tpl: 'ams-report.docx', prefix: 'AMS_Report' }, ybc: { tpl: 'covering-letter-template.docx', prefix: 'Year_Book_Closing' }, intim: { tpl: 'intimation-report.docx', prefix: 'Intimation_Report' } };
 const REQUIRED = ['Unit Name', 'Unit ID', 'Parent Name', 'District Name'];
 const DEFAULT_YEARS = ['2025-26', '2026-27'];
 const S = { maps: [], disp: [], mapIdx: new Map(), tree: {}, years: [], admin: false, rtype: 'ams', amsMode: 1, last: null, rows: [], ids: new Set() };

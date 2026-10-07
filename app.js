@@ -4,6 +4,13 @@ import { generateDocx, download } from './js/docx-generator.js';
 import { buildAmsReport, parseDate, normPS } from './js/ams-report.js';
 const { $, norm, esc, showToast } = UI;
 
+// Login button is wired FIRST, so it works even if something later fails. The real error code is shown to help debugging.
+$('gBtn').onclick = () => {
+  $('lerr').textContent = '';
+  FS.googleLogin().catch(e => { console.error(e); $('lerr').textContent = UI.friendly(e) + ' [' + (e.code || e.message) + ']'; });
+};
+window.addEventListener('error', ev => { if (!document.body.classList.contains('authed')) $('lerr').textContent = 'Error: ' + ev.message; });
+
 // ---- Field mapping from Firestore dispatch fields to template placeholders (edit if needed) ----
 const F = { dispatchNo: 'Audit Party No', dispatchDate: 'Planned Start Date', paraNo: 'Converted to Para' };
 // Admin Google accounts (lowercase). Only these see Upload. Firestore rules must list the same emails.
@@ -272,7 +279,6 @@ $('amsMode').onclick = e => { const b = e.target.closest('button'); if (!b) retu
 $('letterSel').hidden = true; $('amsBox').hidden = false; $('genBtn').textContent = genLabel();
 
 // ---------- Google sign-in ----------
-$('gBtn').onclick = () => { $('lerr').textContent = ''; FS.googleLogin().catch(e => $('lerr').textContent = UI.friendly(e)); };
 $('logoutBtn').onclick = () => { FS.logout(); S.disp = []; S.maps = []; };
 FS.onUser(u => {
   document.body.classList.toggle('authed', !!u); if (!u) return;

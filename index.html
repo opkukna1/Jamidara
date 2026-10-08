@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#4338ca">
+<title>Cover Letter Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.47.4/docxtemplater.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* Fallback: agar cdnjs block/fail ho to jsDelivr se load karo */
+if(!window.PizZip)document.write('<script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"><\/script>');
+if(!window.docxtemplater)document.write('<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.47.4/build/docxtemplater.js"><\/script>');
+if(!window.XLSX)document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
+</script>
+</head><body>
+<div id="login"><div class="lcard"><div class="logo xl">✉</div><h1>Cover Letter Generator</h1><p>Sign in to generate official letters</p>
+<button id="gBtn" class="gbtn"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>Continue with Google</button>
+<small id="lerr"></small></div></div>
+
+<div class="bgblob b1"></div><div class="bgblob b2"></div>
+<header class="top">
+  <button id="menuBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+  <div class="brand"><div class="logo">✉</div><div><h1>Cover Letter Generator</h1><p>Generate official covering letters quickly and accurately</p></div></div>
+  <div class="user"><img id="avatar" class="av" alt=""></div>
+</header>
+<div id="scrim"></div>
+<nav id="drawer">
+  <div class="dhead"><img id="davatar" class="av" alt=""><div><b id="dname">User</b><small id="demail"></small></div></div>
+  <a data-view="dashboard" class="on"><i>🏠</i>Dashboard</a>
+  <a data-view="generate"><i>📄</i>Cover Letter Generator</a>
+  <a data-view="data"><i>📊</i>Dispatch Data</a>
+  <a data-view="upload" id="navUpload"><i>⬆</i>Upload Dispatch File</a>
+  <a data-view="ats"><i>🤖</i>ATS Generate<em>Soon</em></a>
+  <a data-view="settings"><i>⚙</i>Settings</a>
+  <a data-view="about"><i>ℹ</i>About</a>
+  <button id="logoutBtn" class="dlogout">⎋ Sign out</button><div class="dfoot">Version 1.0</div>
+</nav>
+<main>
+<section id="v-dashboard" class="view">
+  <div class="hero"><small id="hello">नमस्ते 👋</small><h2>Official letters,<br>ready in seconds.</h2><p>Choose year, district and gram panchayat. Download the Word file or share it on WhatsApp.</p>
+    <button class="cta" data-view="generate">Generate Cover Letter →</button></div>
+  <div class="stats">
+    <div class="stat"><i>📦</i><b id="stD">–</b><span>Dispatch records</span></div>
+    <div class="stat"><i>🗺</i><b id="stM">–</b><span>Mappings</span></div>
+    <div class="stat"><i>📅</i><b id="stY">–</b><span>Years</span></div></div>
+  <div class="tiles">
+    <button class="tile" data-view="generate"><i>📄</i><b>Cover Letter</b><span>AMS · Cover Letter · Intimation</span></button>
+    <button class="tile" data-view="data"><i>📊</i><b>Dispatch Data</b><span>Search &amp; filter</span></button>
+    <button class="tile" data-view="upload" id="tileUpload"><i>⬆</i><b>Upload Data</b><span>Admin only</span></button>
+    <button class="tile soon" data-view="ats"><span class="badge">Soon</span><i>🤖</i><b>ATS Generate</b><span>Coming soon</span></button></div>
+</section>
+
+<section id="v-generate" class="view"><div class="card"><div class="ch"><i>📄</i><div><h2>Cover Letter Generator</h2><p>Choose report type and location</p></div></div>
+  <div class="lab">Report type</div>
+  <div class="rtypes" id="rtypes"><button class="on" data-t="ams"><i>📑</i>AMS Report</button><button data-t="ybc"><i>📘</i>Cover Letter</button><button data-t="intim"><i>📨</i>Intimation Report</button></div>
+  <label><span class="step">1</span>Year<select id="year"></select></label>
+  <div id="letterSel">
+  <label><span class="step">2</span>District<select id="dist"></select></label>
+  <label><span class="step">3</span>Panchayat Samiti<select id="ps"></select></label>
+  <label><span class="step">4</span>Gram Panchayat<select id="gp"></select></label></div>
+  <div id="amsBox" hidden>
+    <div class="lab"><span class="step">2</span>Panchayat Samiti (select one or more)</div><div id="amsPs" class="checks"></div>
+    <div class="lab"><span class="step">3</span>PS in the totals</div>
+    <div class="seg" id="amsMode"><button class="on" data-m="1">With PS</button><button data-m="2">Without PS</button></div>
+    <p class="muted" style="font-size:.78rem;margin:8px 0 0">With PS: the PS's own row is counted in totals. Without PS: only Gram Panchayats.</p></div>
+  <div id="info" class="info"></div><div id="warn" class="warn"></div>
+  <div id="rowsPreview"></div>
+  <button id="genBtn" class="primary big">Generate Cover Letter</button>
+  <div id="result" class="result" hidden><div class="ok">✓</div><b>File ready</b><small id="rname"></small>
+    <div class="row"><button id="dlBtn" class="primary">⬇ Download Word</button><button id="waBtn" class="wa">Share on WhatsApp</button></div></div>
+</div></section>
+
+<section id="v-data" class="view"><div class="card"><div class="ch"><i>📊</i><div><h2>Dispatch Data</h2><p>Search and filter all records</p></div></div>
+  <div class="filters"><select id="fYear"></select><select id="fDist"></select><select id="fPs"></select><select id="fStatus"></select>
+  <input id="fSearch" placeholder="🔍  Search GP / Dispatch Number"></div>
+  <div id="dataOut"></div></div></section>
+
+<section id="v-upload" class="view"><div class="card"><div class="ch"><i>⬆</i><div><h2>Upload Dispatch File</h2><p>Admin only · updates Firestore safely</p></div></div>
+  <p id="noAdmin" class="muted">🔒 Only admin accounts can upload data.</p>
+  <div id="upBox" hidden>
+  <label>Year for this file<select id="upYear"></select></label>
+  <label>Dispatch .xlsx file<input type="file" id="file" accept=".xlsx"></label>
+  <div id="fileInfo" class="info"></div><div id="preview" class="scroll"></div>
+  <div class="row"><button id="prevBtn" disabled>👁 Preview Data</button><button id="upBtn" class="primary" disabled>Upload / Update Firestore</button></div>
+  <div id="upRes" class="info"></div>
+  <hr><h3>Mapping File (Hindi / English)</h3>
+  <p class="muted">Columns needed: GP_EN, GP_HI, PS_EN, PS_HI, DIST_EN, DIST_HI</p>
+  <label>Mapping .xlsx file<input type="file" id="mFile" accept=".xlsx"></label>
+  <div id="mInfo" class="info"></div>
+  <button id="mBtn" class="primary big" disabled>Upload Mapping to Firestore</button>
+  <div id="mRes" class="info"></div></div></div></section>
+
+<section id="v-ats" class="view"><div class="card center"><div class="logo xl">🤖</div><h2>ATS Generate</h2><span class="chip">Coming soon</span>
+  <p class="muted">This section is reserved for the ATS generator and will be added in a future update.</p></div></section>
+<section id="v-settings" class="view"><div class="card"><div class="ch"><i>⚙</i><div><h2>Settings</h2><p>Data cache</p></div></div>
+  <p class="muted">Firestore data is cached in memory for this session.</p><button id="reloadBtn" class="primary">🔄 Reload data from Firestore</button></div></section>
+<section id="v-about" class="view"><div class="card center"><div class="logo xl">✉</div><h2>Cover Letter Generator</h2>
+  <p class="muted">A digital tool for generating official covering letters from centralized dispatch data.</p><span class="chip">Version 1.0</span></div></section>
+</main>
+<div id="toasts"></div>
+<script>
+/* Fallback: if app.js fails to load, the button explains why instead of doing nothing. app.js replaces this handler. */
+(function(){var b=document.getElementById('gBtn'),l=document.getElementById('lerr');
+b.onclick=function(){l.textContent='App load nahi hui. Saari files (app.js, js/ folder, firebase-config.js) check karo aur page hard refresh karo.';};
+window.addEventListener('error',function(e){l.textContent='Error: '+(e.message||'file load nahi hui');});})();
+</script>
+<script type="module" src="app.js" onerror="document.getElementById('lerr').textContent='app.js load nahi hua - file ka naam/jagah check karo.'"></script>
+</body></html>

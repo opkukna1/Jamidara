@@ -1,7 +1,3 @@
-// ============================================================
-// JAMIDARA - COVER LETTER GENERATOR
-// ============================================================
-
 import {
   loadMappings,
   loadDispatchData,
@@ -13,19 +9,41 @@ import {
 } from './js/firestore.js';
 
 import * as UI from './js/ui.js';
+import { generateDocx } from './js/docx-generator.js';
 
-import {
-  generateDocx
-} from './js/docx-generator.js';
+const $ = UI.$;
 
 
-// ============================================================
-// CONFIG
-// ============================================================
+/* =========================================================
+   STATE
+========================================================= */
 
-const ADMIN_EMAILS = [
-  'opsiddh42@gmail.com'
-];
+const S = {
+  user: null,
+
+  mappings: [],
+  dispatches: [],
+
+  rtype: 'ybc',
+
+  year: '',
+  district: '',
+  ps: '',
+  gp: '',
+
+  amsPs: [],
+  amsMode: 'all',
+
+  selectedRows: [],
+
+  dispatchPreview: [],
+  mappingPreview: []
+};
+
+
+/* =========================================================
+   REPORT TYPES
+========================================================= */
 
 const REPORTS = {
 
@@ -47,509 +65,1038 @@ const REPORTS = {
 };
 
 
-// ============================================================
-// STATE
-// ============================================================
-
-const S = {
-
-  user: null,
-
-  mappings: [],
-
-  dispatches: [],
-
-  rtype: 'ybc',
-
-  year: '2025-26',
-
-  district: '',
-
-  ps: '',
-
-  gp: 'ALL',
-
-  last: null,
-
-  amsMode: '1',
-
-  selectedAmsPs: []
-
-};
-
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-const $ = id =>
-  document.getElementById(id);
-
+/* =========================================================
+   HELPERS
+========================================================= */
 
 function safe(v) {
-
-  return v == null
-    ? ''
-    : String(v).trim();
-
+  return String(v ?? '').trim();
 }
 
 
 function norm(v) {
-
   return safe(v)
-    .replace(
-      /gram\s+panchayat|panchayat\s+samiti/gi,
-      ''
-    )
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/gram\s+panchayat|panchayat\s+samiti/g, '')
+    .replace(/[^a-z0-9\u0900-\u097f]+/g, ' ')
+    .trim();
+}
+
+
+function unique(arr) {
+  return [...new Set(arr.filter(Boolean))];
+}
+
+
+function showError(e) {
+
+  console.error(e);
+
+  const msg = UI.friendly
+    ? UI.friendly(e)
+    : (e?.message || String(e));
+
+  UI.showToast(msg, 'error');
 
 }
 
 
-function slug(v) {
-
-  return safe(v)
-    .replace(/[^\w\u0900-\u097F-]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '');
-
-}
-
-
-function today() {
-
-  const d = new Date();
-
-  const dd =
-    String(d.getDate()).padStart(2, '0');
-
-  const mm =
-    String(d.getMonth() + 1).padStart(2, '0');
-
-  const yyyy =
-    d.getFullYear();
-
-  return `${dd}-${mm}-${yyyy}`;
-
-}
-
-
-function isAdmin() {
-
-  return !!(
-    S.user &&
-    ADMIN_EMAILS
-      .map(x => x.toLowerCase())
-      .includes(
-        safe(S.user.email).toLowerCase()
-      )
-  );
-
-}
-
-
-function toast(
-  msg,
-  type = ''
-) {
-
-  try {
-
-    UI.showToast(
-      msg,
-      type
-    );
-
-  } catch {
-
-    alert(msg);
-
-  }
-
-}
-
-
-// ============================================================
-// AUTH
-// ============================================================
-
-onUser(async user => {
-
-  console.log(
-    'AUTH STATE:',
-    user
-  );
-
-  S.user =
-    user || null;
-
-
-  if (!user) {
-
-    showLogin();
-
-    return;
-
-  }
-
-
-  showApp();
-
-
-  setUserUI(user);
-
-
-  try {
-
-    await loadData();
-
-  } catch (e) {
-
-    console.error(
-      'Initial data load failed:',
-      e
-    );
-
-    toast(
-      'Data load error: ' +
-      getRealError(e),
-      'err'
-    );
-
-  }
-
-});
-
-
-// ============================================================
-// LOGIN SCREEN
-// ============================================================
-
-function showLogin() {
-
-  const login =
-    $('login');
-
-  if (login) {
-    login.style.display =
-      'flex';
-  }
-
-  document
-    .querySelectorAll(
-      'header.top, nav#drawer, main'
-    )
-    .forEach(el => {
-
-      el.style.display =
-        'none';
-
-    });
-
-}
-
+/* =========================================================
+   LOGIN / LOGOUT UI
+========================================================= */
 
 function showApp() {
 
-  const login =
-    $('login');
+  const login = $('login');
 
   if (login) {
-
-    login.style.display =
-      'none';
-
+    login.style.display = 'none';
   }
 
+  /*
+    IMPORTANT:
+    style.css contains:
+
+    body.authed #login { display:none }
+
+    body:not(.authed) .top,
+    body:not(.authed) main {
+      visibility:hidden
+    }
+
+    इसलिए body.authed लगाना जरूरी है।
+  */
+
+  document.body.classList.add('authed');
+
+
+  /*
+    सभी views hide करो
+    फिर dashboard activate करो
+  */
+
   document
-    .querySelectorAll(
-      'header.top, nav#drawer, main'
-    )
+    .querySelectorAll('.view')
+    .forEach(v => {
+      v.classList.remove('active');
+    });
+
+
+  const dashboard = $('v-dashboard');
+
+  if (dashboard) {
+    dashboard.classList.add('active');
+  }
+
+
+  /*
+    Header / drawer / main visible
+  */
+
+  const top = document.querySelector('.top');
+  const drawer = $('drawer');
+  const main = document.querySelector('main');
+
+  if (top) {
+    top.style.visibility = 'visible';
+    top.style.display = '';
+  }
+
+  if (drawer) {
+    drawer.style.visibility = 'visible';
+    drawer.style.display = '';
+  }
+
+  if (main) {
+    main.style.visibility = 'visible';
+    main.style.display = '';
+  }
+
+}
+
+
+function showLogin() {
+
+  const login = $('login');
+
+  document.body.classList.remove('authed');
+
+
+  if (login) {
+    login.style.display = 'grid';
+  }
+
+
+  const top = document.querySelector('.top');
+  const main = document.querySelector('main');
+
+  if (top) {
+    top.style.visibility = 'hidden';
+  }
+
+  if (main) {
+    main.style.visibility = 'hidden';
+  }
+
+}
+
+
+/* =========================================================
+   USER INFO
+========================================================= */
+
+function updateUserUI(user) {
+
+  const name =
+    user?.displayName ||
+    user?.email ||
+    'User';
+
+  const email =
+    user?.email ||
+    '';
+
+  /*
+    Different possible IDs/classes in UI.
+  */
+
+  const selectors = [
+    '#userName',
+    '#profileName',
+    '[data-user-name]'
+  ];
+
+  selectors.forEach(selector => {
+
+    document
+      .querySelectorAll(selector)
+      .forEach(el => {
+        el.textContent = name;
+      });
+
+  });
+
+
+  document
+    .querySelectorAll('#userEmail,[data-user-email]')
     .forEach(el => {
-
-      el.style.display =
-        '';
-
+      el.textContent = email;
     });
 
 }
 
 
-// ============================================================
-// GOOGLE LOGIN
-// ============================================================
-
-const googleButton =
-  $('gBtn');
-
-
-if (googleButton) {
-
-  googleButton.addEventListener(
-    'click',
-    async () => {
-
-      const err =
-        $('lerr');
-
-      if (err) {
-        err.textContent = '';
-      }
-
-
-      googleButton.disabled =
-        true;
-
-      googleButton.style.opacity =
-        '0.7';
-
-
-      try {
-
-        await googleLogin();
-
-      } catch (e) {
-
-        console.error(
-          'GOOGLE LOGIN ERROR:',
-          e
-        );
-
-
-        if (err) {
-
-          err.textContent =
-            getRealError(e);
-
-        }
-
-      } finally {
-
-        googleButton.disabled =
-          false;
-
-        googleButton.style.opacity =
-          '';
-
-      }
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-const logoutButton =
-  $('logoutBtn');
-
-
-if (logoutButton) {
-
-  logoutButton.addEventListener(
-    'click',
-    async () => {
-
-      try {
-
-        await logout();
-
-      } catch (e) {
-
-        console.error(
-          'LOGOUT ERROR:',
-          e
-        );
-
-      }
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// USER UI
-// ============================================================
-
-function setUserUI(user) {
-
-  const name =
-    safe(
-      user.displayName ||
-      user.email ||
-      'User'
-    );
-
-  const email =
-    safe(
-      user.email
-    );
-
-
-  if ($('dname')) {
-
-    $('dname').textContent =
-      name;
-
-  }
-
-
-  if ($('demail')) {
-
-    $('demail').textContent =
-      email;
-
-  }
-
-
-  if ($('hello')) {
-
-    $('hello').textContent =
-      `नमस्ते ${name} 👋`;
-
-  }
-
-
-  const avatar =
-    user.photoURL || '';
-
-
-  if ($('avatar')) {
-
-    $('avatar').src =
-      avatar;
-
-  }
-
-
-  if ($('davatar')) {
-
-    $('davatar').src =
-      avatar;
-
-  }
-
-
-  const admin =
-    isAdmin();
-
-
-  const uploadNav =
-    $('navUpload');
-
-
-  const uploadTile =
-    $('tileUpload');
-
-
-  if (uploadNav) {
-
-    uploadNav.style.display =
-      admin
-        ? ''
-        : 'none';
-
-  }
-
-
-  if (uploadTile) {
-
-    uploadTile.style.display =
-      admin
-        ? ''
-        : 'none';
-
-  }
-
-
-  const noAdmin =
-    $('noAdmin');
-
-
-  const upBox =
-    $('upBox');
-
-
-  if (noAdmin) {
-
-    noAdmin.style.display =
-      admin
-        ? 'none'
-        : '';
-
-  }
-
-
-  if (upBox) {
-
-    upBox.hidden =
-      !admin;
-
-  }
-
-}
-
-
-// ============================================================
-// LOAD DATA
-// ============================================================
+/* =========================================================
+   LOAD FIRESTORE DATA
+========================================================= */
 
 async function loadData() {
 
-  console.log(
-    'Loading Firestore mappings...'
+  try {
+
+    UI.showToast('Loading data...');
+
+    const [mappings, dispatches] = await Promise.all([
+      loadMappings(),
+      loadDispatchData()
+    ]);
+
+    S.mappings = Array.isArray(mappings)
+      ? mappings
+      : [];
+
+    S.dispatches = Array.isArray(dispatches)
+      ? dispatches
+      : [];
+
+
+    console.log('Mappings:', S.mappings.length);
+    console.log('Dispatches:', S.dispatches.length);
+
+
+    populateYear();
+    populateDistrict();
+
+    refreshGenerator();
+
+
+    UI.showToast(
+      `Data loaded: ${S.dispatches.length} dispatch + ${S.mappings.length} mappings`,
+      'success'
+    );
+
+
+  } catch (e) {
+
+    console.error('LOAD DATA ERROR:', e);
+
+    showError(e);
+
+    /*
+      App shell फिर भी खुला रहेगा।
+    */
+
+  }
+
+}
+
+
+/* =========================================================
+   YEAR
+========================================================= */
+
+function getYears() {
+
+  const values = [];
+
+  S.dispatches.forEach(r => {
+
+    const y =
+      r.Year ??
+      r.year ??
+      r['Year'];
+
+    if (safe(y)) {
+      values.push(safe(y));
+    }
+
+  });
+
+
+  S.mappings.forEach(r => {
+
+    const y =
+      r.Year ??
+      r.year ??
+      r['Year'];
+
+    if (safe(y)) {
+      values.push(safe(y));
+    }
+
+  });
+
+
+  const defaults = [
+    '2025-26',
+    '2026-27'
+  ];
+
+  return unique([
+    ...values,
+    ...defaults
+  ]);
+}
+
+
+function populateYear() {
+
+  const el = $('year');
+
+  if (!el) return;
+
+  const years = getYears();
+
+  const current =
+    S.year ||
+    years[0] ||
+    '2025-26';
+
+  S.year = current;
+
+
+  UI.fillSelect(
+    el,
+    years.map(v => ({
+      v,
+      t: v
+    })),
+    'Select Year'
   );
 
 
-  const mappings =
-    await loadMappings();
+  el.value = current;
+
+}
 
 
-  console.log(
-    'Mappings:',
-    mappings.length
+/* =========================================================
+   DISTRICT
+========================================================= */
+
+function districtFromMapping(r) {
+
+  return safe(
+    r.DIST_EN ??
+    r.District ??
+    r.DISTRICT ??
+    r['District EN']
+  );
+
+}
+
+
+function districtFromDispatch(r) {
+
+  return safe(
+    r.District ??
+    r.DIST_EN ??
+    r['District']
+  );
+
+}
+
+
+function getDistricts() {
+
+  const values = [];
+
+  S.mappings.forEach(r => {
+    const v = districtFromMapping(r);
+    if (v) values.push(v);
+  });
+
+  S.dispatches.forEach(r => {
+    const v = districtFromDispatch(r);
+    if (v) values.push(v);
+  });
+
+  return unique(values).sort();
+
+}
+
+
+function populateDistrict() {
+
+  const el = $('dist');
+
+  if (!el) return;
+
+  const districts = getDistricts();
+
+  let selected =
+    S.district ||
+    districts.find(x => norm(x) === 'bikaner') ||
+    districts[0] ||
+    '';
+
+
+  S.district = selected;
+
+
+  UI.fillSelect(
+    el,
+    districts.map(v => ({
+      v,
+      t: v
+    })),
+    'Select District'
   );
 
 
-  const dispatches =
-    await loadDispatchData();
+  el.value = selected;
+
+}
 
 
-  console.log(
-    'Dispatches:',
-    dispatches.length
+/* =========================================================
+   PS
+========================================================= */
+
+function psFromMapping(r) {
+
+  return safe(
+    r.PS_EN ??
+    r.PS ??
+    r['PS EN'] ??
+    r['Panchayat Samiti']
+  );
+
+}
+
+
+function getPSList() {
+
+  const dist = norm(S.district);
+
+  const values = [];
+
+  S.mappings.forEach(r => {
+
+    if (
+      !dist ||
+      norm(districtFromMapping(r)) === dist
+    ) {
+
+      const ps = psFromMapping(r);
+
+      if (ps) {
+        values.push(ps);
+      }
+
+    }
+
+  });
+
+
+  S.dispatches.forEach(r => {
+
+    const d = districtFromDispatch(r);
+
+    if (
+      !dist ||
+      norm(d) === dist
+    ) {
+
+      const ps = safe(
+        r.PS_EN ??
+        r.PS ??
+        r['PS']
+      );
+
+      if (ps) {
+        values.push(ps);
+      }
+
+    }
+
+  });
+
+
+  return unique(values).sort();
+
+}
+
+
+function populatePS() {
+
+  const el = $('ps');
+
+  if (!el) return;
+
+  const list = getPSList();
+
+  let selected =
+    S.ps ||
+    list.find(x => norm(x) === 'khajuwala') ||
+    list.find(x => norm(x) === 'bikaner') ||
+    list[0] ||
+    '';
+
+
+  S.ps = selected;
+
+
+  UI.fillSelect(
+    el,
+    list.map(v => ({
+      v,
+      t: v
+    })),
+    'Select Panchayat Samiti'
   );
 
 
-  S.mappings =
-    mappings;
+  el.value = selected;
+
+}
 
 
-  S.dispatches =
-    dispatches;
+/* =========================================================
+   GP
+========================================================= */
+
+function gpFromMapping(r) {
+
+  return safe(
+    r.GP_EN ??
+    r.GP ??
+    r['GP EN'] ??
+    r['Gram Panchayat']
+  );
+
+}
 
 
-  updateStats();
+function getGPList() {
+
+  const dist = norm(S.district);
+  const ps = norm(S.ps);
+
+  const values = [];
+
+  S.mappings.forEach(r => {
+
+    const sameDist =
+      !dist ||
+      norm(districtFromMapping(r)) === dist;
+
+    const samePS =
+      !ps ||
+      norm(psFromMapping(r)) === ps;
+
+    if (sameDist && samePS) {
+
+      const gp = gpFromMapping(r);
+
+      if (gp) {
+        values.push(gp);
+      }
+
+    }
+
+  });
 
 
-  buildYears();
+  return unique(values).sort();
+
+}
 
 
-  buildDistricts();
+function populateGP() {
+
+  const el = $('gp');
+
+  if (!el) return;
+
+  const list = getGPList();
 
 
-  buildFilterControls();
+  UI.fillSelect(
+    el,
+    list.map(v => ({
+      v,
+      t: v
+    })),
+    'All Gram Panchayats'
+  );
 
 
-  updateGenerateControls();
+  /*
+    Blank means ALL
+  */
+
+  S.gp = '';
+
+  el.value = '';
+
+}
+
+
+/* =========================================================
+   GENERATOR REFRESH
+========================================================= */
+
+function refreshGenerator() {
+
+  populatePS();
+  populateGP();
+  updateInfo();
+
+}
+
+
+/* =========================================================
+   INFO / WARNINGS
+========================================================= */
+
+function updateInfo() {
+
+  const info = $('info');
+  const warn = $('warn');
+
+  const rows = getSelectedRows();
+
+  if (info) {
+
+    info.textContent =
+      `${rows.length} record(s) selected`;
+
+  }
+
+
+  if (warn) {
+
+    warn.textContent = '';
+
+    if (!S.year) {
+      warn.textContent = 'Please select year.';
+      return;
+    }
+
+    if (!S.district) {
+      warn.textContent = 'Please select district.';
+      return;
+    }
+
+    if (!S.ps) {
+      warn.textContent = 'Please select Panchayat Samiti.';
+      return;
+    }
+
+    if (!rows.length) {
+      warn.textContent =
+        'No dispatch records found for selected filters.';
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   SELECT DISPATCH ROWS
+========================================================= */
+
+function getSelectedRows() {
+
+  const year = norm(S.year);
+  const dist = norm(S.district);
+  const ps = norm(S.ps);
+  const gp = norm(S.gp);
+
+
+  let rows = S.dispatches.filter(r => {
+
+    const ry = norm(
+      r.Year ??
+      r.year ??
+      ''
+    );
+
+    const rd = norm(
+      r.District ??
+      r.DIST_EN ??
+      ''
+    );
+
+    const rp = norm(
+      r.PS ??
+      r.PS_EN ??
+      ''
+    );
+
+
+    /*
+      Year
+    */
+
+    if (
+      year &&
+      ry &&
+      ry !== year
+    ) {
+      return false;
+    }
+
+
+    /*
+      District
+    */
+
+    if (
+      dist &&
+      rd &&
+      rd !== dist
+    ) {
+      return false;
+    }
+
+
+    /*
+      PS
+    */
+
+    if (
+      ps &&
+      rp &&
+      rp !== ps
+    ) {
+      return false;
+    }
+
+
+    /*
+      GP filter
+    */
+
+    if (gp) {
+
+      const rg = norm(
+        r.GP ??
+        r.GP_EN ??
+        r['Gram Panchayat'] ??
+        ''
+      );
+
+      if (rg !== gp) {
+        return false;
+      }
+
+    }
+
+
+    return true;
+
+  });
+
+
+  /*
+    If dispatch file doesn't contain district/PS,
+    try matching through Unit ID / mapping.
+  */
+
+  if (!rows.length && S.dispatches.length) {
+
+    rows = S.dispatches.filter(r => {
+
+      const unit =
+        safe(
+          r['Unit ID'] ??
+          r.UnitID ??
+          r.unitId
+        );
+
+      if (!unit) return false;
+
+      const m = S.mappings.find(x => {
+
+        const xUnit =
+          safe(
+            x['Unit ID'] ??
+            x.UnitID ??
+            x.unitId
+          );
+
+        return xUnit && xUnit === unit;
+
+      });
+
+
+      if (!m) return false;
+
+
+      const md = norm(districtFromMapping(m));
+      const mp = norm(psFromMapping(m));
+      const mg = norm(gpFromMapping(m));
+
+
+      if (dist && md !== dist) return false;
+      if (ps && mp !== ps) return false;
+      if (gp && mg !== gp) return false;
+
+
+      return true;
+
+    });
+
+  }
+
+
+  S.selectedRows = rows;
+
+  return rows;
+
+}
+
+
+/* =========================================================
+   MAP DISPATCH + MAPPING DATA
+========================================================= */
+
+function findMappingForRow(row) {
+
+  const unitId = safe(
+    row['Unit ID'] ??
+    row.UnitID ??
+    row.unitId
+  );
+
+
+  /*
+    First try Unit ID.
+  */
+
+  if (unitId) {
+
+    const exact = S.mappings.find(m => {
+
+      const mid = safe(
+        m['Unit ID'] ??
+        m.UnitID ??
+        m.unitId
+      );
+
+      return mid && mid === unitId;
+
+    });
+
+    if (exact) return exact;
+
+  }
+
+
+  /*
+    Then GP + PS + District.
+  */
+
+  const rg = norm(
+    row.GP ??
+    row.GP_EN ??
+    row['Gram Panchayat'] ??
+    ''
+  );
+
+  const rp = norm(
+    row.PS ??
+    row.PS_EN ??
+    ''
+  );
+
+  const rd = norm(
+    row.District ??
+    row.DIST_EN ??
+    ''
+  );
+
+
+  return S.mappings.find(m => {
+
+    const mg = norm(gpFromMapping(m));
+    const mp = norm(psFromMapping(m));
+    const md = norm(districtFromMapping(m));
+
+
+    return (
+      (!rg || mg === rg) &&
+      (!rp || mp === rp) &&
+      (!rd || md === rd)
+    );
+
+  }) || null;
+
+}
+
+
+/* =========================================================
+   PREPARE WORD DATA
+========================================================= */
+
+function prepareWordData(row) {
+
+  const mapping = findMappingForRow(row);
+
+
+  /*
+    Keep original fields also.
+    This makes the generator compatible with
+    different Word template placeholders.
+  */
+
+  const data = {
+    ...row
+  };
+
+
+  /*
+    English fields
+  */
+
+  data.YEAR =
+    S.year ||
+    row.Year ||
+    '';
+
+  data.DISTRICT =
+    districtFromMapping(mapping || {}) ||
+    row.District ||
+    S.district ||
+    '';
+
+  data.PS =
+    psFromMapping(mapping || {}) ||
+    row.PS ||
+    S.ps ||
+    '';
+
+  data.GP =
+    gpFromMapping(mapping || {}) ||
+    row.GP ||
+    row.GP_EN ||
+    S.gp ||
+    '';
+
+
+  /*
+    Hindi mapping fields.
+    Different possible column names are supported.
+  */
+
+  data.DISTRICT_HI =
+    mapping?.DIST_HI ??
+    mapping?.DISTRICT_HI ??
+    mapping?.District_HI ??
+    mapping?.['DIST_HI'] ??
+    '';
+
+  data.PS_HI =
+    mapping?.PS_HI ??
+    mapping?.PSHI ??
+    mapping?.['PS_HI'] ??
+    '';
+
+  data.GP_HI =
+    mapping?.GP_HI ??
+    mapping?.GPHI ??
+    mapping?.['GP_HI'] ??
+    '';
+
+
+  /*
+    Dispatch number/date.
+  */
+
+  data.DISPATCH_NO =
+    row['Dispatch No'] ??
+    row['Dispatch Number'] ??
+    row['Dispatch Sankhya'] ??
+    row['Dispatch Sankhya'] ??
+    row['Dispatch No.'] ??
+    row.DispatchNo ??
+    '';
+
+
+  data.DATE =
+    row.Date ??
+    row.date ??
+    row['Dispatch Date'] ??
+    row['Date'] ??
+    '';
+
+
+  /*
+    Common alternate placeholders.
+  */
+
+  data.DISPATCH_NUMBER = data.DISPATCH_NO;
+  data.DISPATCH_DATE = data.DATE;
+
+  data.YEAR_EN = data.YEAR;
+  data.DIST_EN = data.DISTRICT;
+  data.PS_EN = data.PS;
+  data.GP_EN = data.GP;
+
+
+  /*
+    Hindi fallbacks.
+  */
+
+  if (!data.DISTRICT_HI) {
+    data.DISTRICT_HI = data.DISTRICT;
+  }
+
+  if (!data.PS_HI) {
+    data.PS_HI = data.PS;
+  }
+
+  if (!data.GP_HI) {
+    data.GP_HI = data.GP;
+  }
+
+
+  return data;
+
+}
+
+
+/* =========================================================
+   REPORT TYPE
+========================================================= */
+
+function setReportType(type) {
+
+  if (!REPORTS[type]) {
+    return;
+  }
+
+  S.rtype = type;
+
+
+  document
+    .querySelectorAll('#rtypes [data-t]')
+    .forEach(btn => {
+
+      btn.classList.toggle(
+        'on',
+        btn.dataset.t === type
+      );
+
+      btn.classList.toggle(
+        'active',
+        btn.dataset.t === type
+      );
+
+    });
 
 
   updateInfo();
@@ -557,1318 +1104,51 @@ async function loadData() {
 }
 
 
-// ============================================================
-// STATS
-// ============================================================
-
-function updateStats() {
-
-  if ($('stD')) {
-
-    $('stD').textContent =
-      S.dispatches.length;
-
-  }
-
-
-  if ($('stM')) {
-
-    $('stM').textContent =
-      S.mappings.length;
-
-  }
-
-
-  const years =
-    new Set();
-
-
-  S.dispatches.forEach(d => {
-
-    const y =
-      safe(
-        d.Year ||
-        d.YEAR ||
-        d.year
-      );
-
-    if (y) {
-      years.add(y);
-    }
-
-  });
-
-
-  S.mappings.forEach(d => {
-
-    const y =
-      safe(
-        d.Year ||
-        d.YEAR ||
-        d.year
-      );
-
-    if (y) {
-      years.add(y);
-    }
-
-  });
-
-
-  if ($('stY')) {
-
-    $('stY').textContent =
-      years.size || '1';
-
-  }
-
-}
-
-
-// ============================================================
-// YEAR LIST
-// ============================================================
-
-function buildYears() {
-
-  const years =
-    new Set([
-      '2025-26',
-      '2026-27'
-    ]);
-
-
-  S.dispatches.forEach(d => {
-
-    const y =
-      safe(
-        d.Year ||
-        d.YEAR ||
-        d.year
-      );
-
-    if (y) {
-      years.add(y);
-    }
-
-  });
-
-
-  const list =
-    [...years].sort();
-
-
-  if ($('year')) {
-
-    $('year').innerHTML =
-      list
-        .map(y =>
-          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
-        )
-        .join('');
-
-
-    if (
-      list.includes(S.year)
-    ) {
-
-      $('year').value =
-        S.year;
-
-    } else {
-
-      S.year =
-        list[0] || '2025-26';
-
-      $('year').value =
-        S.year;
-
-    }
-
-  }
-
-
-  if ($('upYear')) {
-
-    $('upYear').innerHTML =
-      list
-        .map(y =>
-          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
-        )
-        .join('');
-
-  }
-
-
-  if ($('fYear')) {
-
-    $('fYear').innerHTML =
-      `<option value="">All Years</option>` +
-      list
-        .map(y =>
-          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
-        )
-        .join('');
-
-  }
-
-}
-
-
-// ============================================================
-// DISTRICT LIST
-// ============================================================
-
-function getDistrict(m) {
-
-  return safe(
-    m.DIST_EN ||
-    m.DISTRICT_EN ||
-    m.District ||
-    m.district
-  );
-
-}
-
-
-function getDistrictHi(m) {
-
-  return safe(
-    m.DIST_HI ||
-    m.DISTRICT_HI ||
-    m.District_HI ||
-    m.district_hi
-  );
-
-}
-
-
-function getPS(m) {
-
-  return safe(
-    m.PS_EN ||
-    m.PS_NAME_EN ||
-    m.PS ||
-    m.ps
-  );
-
-}
-
-
-function getPSHi(m) {
-
-  return safe(
-    m.PS_HI ||
-    m.PS_NAME_HI ||
-    m.PS_HINDI ||
-    m.ps_hi
-  );
-
-}
-
-
-function getGP(m) {
-
-  return safe(
-    m.GP_EN ||
-    m.GP_NAME_EN ||
-    m.GP ||
-    m.gp
-  );
-
-}
-
-
-function getGPHI(m) {
-
-  return safe(
-    m.GP_HI ||
-    m.GP_NAME_HI ||
-    m.GP_HINDI ||
-    m.gp_hi
-  );
-
-}
-
-
-function buildDistricts() {
-
-  const list =
-    [...new Set(
-      S.mappings
-        .map(getDistrict)
-        .filter(Boolean)
-    )].sort();
-
-
-  const select =
-    $('dist');
-
-
-  if (!select) return;
-
-
-  select.innerHTML =
-    `<option value="">Select District</option>` +
-    list
-      .map(d =>
-        `<option value="${UI.esc(d)}">${UI.esc(d)}</option>`
-      )
-      .join('');
-
-
-  if (S.district) {
-
-    select.value =
-      S.district;
-
-  }
-
-}
-
-
-// ============================================================
-// DISTRICT CHANGE
-// ============================================================
-
-if ($('dist')) {
-
-  $('dist').addEventListener(
-    'change',
-    () => {
-
-      S.district =
-        $('dist').value;
-
-      S.ps =
-        '';
-
-      S.gp =
-        'ALL';
-
-      buildPS();
-
-      buildGP();
-
-      updateInfo();
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// PS LIST
-// ============================================================
-
-function buildPS() {
-
-  const select =
-    $('ps');
-
-
-  if (!select) return;
-
-
-  const list =
-    [...new Set(
-      S.mappings
-        .filter(m =>
-          norm(getDistrict(m)) ===
-          norm(S.district)
-        )
-        .map(getPS)
-        .filter(Boolean)
-    )].sort();
-
-
-  select.innerHTML =
-    `<option value="">Select Panchayat Samiti</option>` +
-    list
-      .map(p =>
-        `<option value="${UI.esc(p)}">${UI.esc(p)}</option>`
-      )
-      .join('');
-
-
-  if (S.ps) {
-
-    select.value =
-      S.ps;
-
-  }
-
-}
-
-
-// ============================================================
-// PS CHANGE
-// ============================================================
-
-if ($('ps')) {
-
-  $('ps').addEventListener(
-    'change',
-    () => {
-
-      S.ps =
-        $('ps').value;
-
-      S.gp =
-        'ALL';
-
-      buildGP();
-
-      updateInfo();
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// GP LIST
-// ============================================================
-
-function buildGP() {
-
-  const select =
-    $('gp');
-
-
-  if (!select) return;
-
-
-  const list =
-    [...new Set(
-      S.mappings
-        .filter(m =>
-          norm(getDistrict(m)) ===
-          norm(S.district) &&
-          norm(getPS(m)) ===
-          norm(S.ps)
-        )
-        .map(getGP)
-        .filter(Boolean)
-    )].sort();
-
-
-  select.innerHTML =
-    `<option value="ALL">All Gram Panchayats</option>` +
-    list
-      .map(g =>
-        `<option value="${UI.esc(g)}">${UI.esc(g)}</option>`
-      )
-      .join('');
-
-
-  select.value =
-    S.gp || 'ALL';
-
-}
-
-
-// ============================================================
-// GP CHANGE
-// ============================================================
-
-if ($('gp')) {
-
-  $('gp').addEventListener(
-    'change',
-    () => {
-
-      S.gp =
-        $('gp').value;
-
-      updateInfo();
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// YEAR CHANGE
-// ============================================================
-
-if ($('year')) {
-
-  $('year').addEventListener(
-    'change',
-    () => {
-
-      S.year =
-        $('year').value;
-
-      updateInfo();
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// REPORT TYPE
-// ============================================================
-
-document
-  .querySelectorAll(
-    '#rtypes [data-t]'
-  )
-  .forEach(btn => {
-
-    btn.addEventListener(
-      'click',
-      () => {
-
-        document
-          .querySelectorAll(
-            '#rtypes [data-t]'
-          )
-          .forEach(x =>
-            x.classList.remove('on')
-          );
-
-
-        btn.classList.add('on');
-
-
-        S.rtype =
-          btn.dataset.t;
-
-
-        updateGenerateControls();
-
-      }
-    );
-
-  });
-
-
-// ============================================================
-// REPORT TYPE UI
-// ============================================================
-
-function updateGenerateControls() {
-
-  const amsBox =
-    $('amsBox');
-
-
-  const letterSel =
-    $('letterSel');
-
-
-  if (S.rtype === 'ams') {
-
-    if (amsBox) {
-      amsBox.hidden = false;
-    }
-
-    if (letterSel) {
-      letterSel.hidden = true;
-    }
-
-    buildAmsPS();
-
-  } else {
-
-    if (amsBox) {
-      amsBox.hidden = true;
-    }
-
-    if (letterSel) {
-      letterSel.hidden = false;
-    }
-
-  }
-
-
-  const btn =
-    $('genBtn');
-
-
-  if (!btn) return;
-
-
-  if (S.rtype === 'ams') {
-
-    btn.textContent =
-      'Generate AMS Report';
-
-  } else if (
-    S.rtype === 'ybc'
-  ) {
-
-    btn.textContent =
-      'Generate Cover Letter';
-
-  } else {
-
-    btn.textContent =
-      'Generate Intimation Report';
-
-  }
-
-}
-
-
-// ============================================================
-// AMS PS
-// ============================================================
-
-function buildAmsPS() {
-
-  const box =
-    $('amsPs');
-
-
-  if (!box) return;
-
-
-  const psList =
-    [...new Set(
-      S.mappings
-        .filter(m =>
-          norm(getDistrict(m)) ===
-          norm(S.district)
-        )
-        .map(getPS)
-        .filter(Boolean)
-    )].sort();
-
-
-  box.innerHTML =
-    psList
-      .map((p, i) => {
-
-        const checked =
-          S.selectedAmsPs.includes(p)
-            ? 'checked'
-            : '';
-
-
-        return `
-          <label class="check">
-            <input
-              type="checkbox"
-              value="${UI.esc(p)}"
-              ${checked}
-            >
-            <span>${UI.esc(p)}</span>
-          </label>
-        `;
-
-      })
-      .join('');
-
-
-  box
-    .querySelectorAll(
-      'input[type="checkbox"]'
-    )
-    .forEach(ch => {
-
-      ch.addEventListener(
-        'change',
-        () => {
-
-          S.selectedAmsPs =
-            [
-              ...box.querySelectorAll(
-                'input:checked'
-              )
-            ]
-              .map(x => x.value);
-
-          updateInfo();
-
-        }
-      );
-
-    });
-
-}
-
-
-// ============================================================
-// AMS MODE
-// ============================================================
-
-document
-  .querySelectorAll(
-    '#amsMode [data-m]'
-  )
-  .forEach(btn => {
-
-    btn.addEventListener(
-      'click',
-      () => {
-
-        document
-          .querySelectorAll(
-            '#amsMode [data-m]'
-          )
-          .forEach(x =>
-            x.classList.remove('on')
-          );
-
-
-        btn.classList.add('on');
-
-
-        S.amsMode =
-          btn.dataset.m;
-
-
-        updateInfo();
-
-      }
-    );
-
-  });
-
-
-// ============================================================
-// INFO
-// ============================================================
-
-function updateInfo() {
-
-  const info =
-    $('info');
-
-
-  if (!info) return;
-
-
-  if (
-    S.rtype === 'ams'
-  ) {
-
-    info.innerHTML =
-      `Select one or more Panchayat Samiti for AMS report.`;
-
-    return;
-
-  }
-
-
-  if (!S.district) {
-
-    info.innerHTML =
-      'Please select District.';
-
-    return;
-
-  }
-
-
-  if (!S.ps) {
-
-    info.innerHTML =
-      'Please select Panchayat Samiti.';
-
-    return;
-
-  }
-
-
-  const rows =
-    getSelectedMappings();
-
-
-  info.innerHTML =
-    `<b>${rows.length}</b> Gram Panchayat selected`;
-
-
-  const warn =
-    $('warn');
-
-
-  if (warn) {
-
-    warn.textContent =
-      '';
-
-  }
-
-}
-
-
-// ============================================================
-// SELECTED MAPPINGS
-// ============================================================
-
-function getSelectedMappings() {
-
-  return S.mappings.filter(m => {
-
-    const districtOK =
-      norm(getDistrict(m)) ===
-      norm(S.district);
-
-
-    const psOK =
-      norm(getPS(m)) ===
-      norm(S.ps);
-
-
-    const gpOK =
-      S.gp === 'ALL' ||
-      norm(getGP(m)) ===
-      norm(S.gp);
-
-
-    return (
-      districtOK &&
-      psOK &&
-      gpOK
-    );
-
-  });
-
-}
-
-
-// ============================================================
-// DISPATCH HELPERS
-// ============================================================
-
-function getDispatchYear(d) {
-
-  return safe(
-    d.Year ||
-    d.YEAR ||
-    d.year
-  );
-
-}
-
-
-function getDispatchGP(d) {
-
-  return safe(
-    d['GP Name'] ||
-    d['Gram Panchayat'] ||
-    d.GP_NAME_EN ||
-    d.GP_EN ||
-    d.GP ||
-    d.gp
-  );
-
-}
-
-
-function getDispatchPS(d) {
-
-  return safe(
-    d['PS Name'] ||
-    d['Panchayat Samiti'] ||
-    d.PS_NAME_EN ||
-    d.PS_EN ||
-    d.PS ||
-    d.ps
-  );
-
-}
-
-
-function getDispatchDistrict(d) {
-
-  return safe(
-    d.District ||
-    d.DIST_EN ||
-    d.DISTRICT_EN ||
-    d.district
-  );
-
-}
-
-
-function getDispatchNumber(d) {
-
-  const keys = [
-
-    'Dispatch No',
-    'Dispatch Number',
-    'Dispatch Sankhya',
-    'dispatch no',
-    'dispatch number',
-    'dispatch sankhya',
-
-    'DISPATCH_NO',
-    'Dispatch_No',
-    'DISPATCH',
-
-    'Sankhya',
-    'sankhya'
-
-  ];
-
-
-  for (
-    const key of keys
-  ) {
-
-    if (
-      safe(d[key])
-    ) {
-
-      return safe(d[key]);
-
-    }
-
-  }
-
-
-  for (
-    const key of Object.keys(d || {})
-  ) {
-
-    const k =
-      key
-        .toLowerCase();
-
-
-    if (
-      k.includes('dispatch') ||
-      k.includes('sankhya')
-    ) {
-
-      if (
-        safe(d[key])
-      ) {
-
-        return safe(d[key]);
-
-      }
-
-    }
-
-  }
-
-
-  return '';
-
-}
-
-
-function getDispatchName(d) {
-
-  const keys = [
-
-    'Dispatch Name',
-    'Dispatch File',
-    'DISPATCH_NAME',
-    'Dispatch_Name',
-    'Name',
-    'NAME',
-    'File',
-    'file'
-
-  ];
-
-
-  for (
-    const key of keys
-  ) {
-
-    if (
-      safe(d[key])
-    ) {
-
-      return safe(d[key]);
-
-    }
-
-  }
-
-
-  return '';
-
-}
-
-
-function getPara(d) {
-
-  const keys = [
-
-    'Para Sankhya',
-    'Para Count',
-    'Para',
-    'para sankhya',
-    'para count',
-
-    'PARA_COUNT',
-    'PARA',
-    'Para_Count'
-
-  ];
-
-
-  for (
-    const key of keys
-  ) {
-
-    if (
-      safe(d[key])
-    ) {
-
-      return safe(d[key]);
-
-    }
-
-  }
-
-
-  for (
-    const key of Object.keys(d || {})
-  ) {
-
-    const k =
-      key
-        .toLowerCase();
-
-
-    if (
-      k.includes('para') ||
-      k.includes('sankhya')
-    ) {
-
-      if (
-        safe(d[key])
-      ) {
-
-        return safe(d[key]);
-
-      }
-
-    }
-
-  }
-
-
-  return '';
-
-}
-
-
-// ============================================================
-// FIND DISPATCH
-// ============================================================
-
-function findDispatch(
-  gp,
-  ps,
-  district,
-  year
-) {
-
-  const gpN =
-    norm(gp);
-
-  const psN =
-    norm(ps);
-
-  const distN =
-    norm(district);
-
-
-  // Exact GP + year
-  let found =
-    S.dispatches.find(d => {
-
-      const dg =
-        norm(getDispatchGP(d));
-
-      const dy =
-        norm(getDispatchYear(d));
-
-
-      return (
-        dg === gpN &&
-        (!year || dy === norm(year))
-      );
-
-    });
-
-
-  if (found) {
-    return found;
-  }
-
-
-  // GP + PS + year
-  found =
-    S.dispatches.find(d => {
-
-      const dg =
-        norm(getDispatchGP(d));
-
-      const dp =
-        norm(getDispatchPS(d));
-
-      const dy =
-        norm(getDispatchYear(d));
-
-
-      return (
-        dg === gpN &&
-        (!dp || dp === psN) &&
-        (!year || dy === norm(year))
-      );
-
-    });
-
-
-  if (found) {
-    return found;
-  }
-
-
-  // GP + district
-  found =
-    S.dispatches.find(d => {
-
-      const dg =
-        norm(getDispatchGP(d));
-
-      const dd =
-        norm(getDispatchDistrict(d));
-
-      const dy =
-        norm(getDispatchYear(d));
-
-
-      return (
-        dg === gpN &&
-        (!dd || dd === distN) &&
-        (!year || dy === norm(year))
-      );
-
-    });
-
-
-  return found || null;
-
-}
-
-
-// ============================================================
-// LETTER VALUES
-// ============================================================
-
-function letterValues(
-  mapping
-) {
-
-  const gpEn =
-    getGP(mapping);
-
-  const gpHi =
-    getGPHI(mapping);
-
-  const psEn =
-    getPS(mapping);
-
-  const psHi =
-    getPSHi(mapping);
-
-  const distEn =
-    getDistrict(mapping);
-
-  const distHi =
-    getDistrictHi(mapping);
-
-
-  const dispatch =
-    findDispatch(
-      gpEn,
-      psEn,
-      distEn,
-      S.year
-    );
-
-
-  return {
-
-    YEAR:
-      S.year,
-
-    GP_NAME_EN:
-      gpEn,
-
-    GP_NAME_ENG:
-      gpEn,
-
-    GP_NAME_HI:
-      gpHi,
-
-    GP_NAME_HINDI:
-      gpHi,
-
-    GP_NAME:
-      gpHi,
-
-    GP_NAME_HI_EN:
-      `${gpHi} (${gpEn})`,
-
-    PS_NAME_EN:
-      psEn,
-
-    PS_NAME_HI:
-      psHi,
-
-    PS_NAME:
-      psHi,
-
-    DISTRICT_EN:
-      distEn,
-
-    DISTRICT_HI:
-      distHi,
-
-    DISTRICT:
-      distHi,
-
-    DISPATCH_NO:
-      dispatch
-        ? getDispatchNumber(dispatch)
-        : '',
-
-    DISPATCH_NAME:
-      dispatch
-        ? getDispatchName(dispatch)
-        : '',
-
-    DATE:
-      today(),
-
-    PARA_COUNT:
-      dispatch
-        ? getPara(dispatch)
-        : '',
-
-    PARA_BREAKUP:
-      dispatch
-        ? getPara(dispatch)
-        : '',
-
-    OFFICE_NAME:
-      distHi,
-
-    DIVISION_NAME:
-      distHi,
-
-    CONSTITUTION_OBJECTION:
-      '0',
-
-    SERIOUS_OBJECTION:
-      '0'
-
-  };
-
-}
-
-
-// ============================================================
-// GENERATE BUTTON
-// ============================================================
-
-const genButton =
-  $('genBtn');
-
-
-if (genButton) {
-
-  genButton.addEventListener(
-    'click',
-    generate
-  );
-
-}
-
-
-// ============================================================
-// GENERATE
-// ============================================================
-
-async function generate() {
-
-  if (!S.user) {
-
-    toast(
-      'Please sign in first.',
-      'err'
-    );
-
-    return;
-
-  }
-
-
-  genButton.disabled =
-    true;
-
-  const oldText =
-    genButton.textContent;
-
-
-  genButton.textContent =
-    'Preparing your file...';
-
+/* =========================================================
+   GENERATE DOCUMENT
+========================================================= */
+
+async function generateReport() {
 
   try {
 
-    console.log(
-      '===== GENERATION START ====='
-    );
+    const rows = getSelectedRows();
+
+    if (!S.year) {
+      throw new Error('Please select year.');
+    }
+
+    if (!S.district) {
+      throw new Error('Please select district.');
+    }
+
+    if (!S.ps) {
+      throw new Error('Please select Panchayat Samiti.');
+    }
+
+    if (!rows.length) {
+      throw new Error(
+        'No records found for selected filters.'
+      );
+    }
 
 
-    console.log(
-      'User:',
-      S.user.email
-    );
+    const report = REPORTS[S.rtype];
 
-    console.log(
-      'Report:',
-      S.rtype
-    );
-
-    console.log(
-      'Year:',
-      S.year
-    );
-
-    console.log(
-      'District:',
-      S.district
-    );
-
-    console.log(
-      'PS:',
-      S.ps
-    );
-
-    console.log(
-      'GP:',
-      S.gp
-    );
+    if (!report) {
+      throw new Error('Invalid report type.');
+    }
 
 
-    // --------------------------------------------------------
-    // CURRENTLY SUPPORTED COVERING LETTER
-    // --------------------------------------------------------
+    /*
+      Currently repository contains only:
+      covering-letter-template.docx
 
-    if (
-      S.rtype !== 'ybc'
-    ) {
+      Therefore other report types are intentionally
+      blocked until their templates are uploaded.
+    */
+
+    if (S.rtype !== 'ybc') {
 
       throw new Error(
         `Template for "${S.rtype}" is not uploaded yet. ` +
@@ -1878,492 +1158,579 @@ async function generate() {
     }
 
 
-    if (!S.district) {
-
-      throw new Error(
-        'Please select District.'
-      );
-
-    }
-
-
-    if (!S.ps) {
-
-      throw new Error(
-        'Please select Panchayat Samiti.'
-      );
-
-    }
-
-
-    const mappings =
-      getSelectedMappings();
-
-
-    if (!mappings.length) {
-
-      throw new Error(
-        'No Gram Panchayat found for selected location.'
-      );
-
-    }
-
-
-    console.log(
-      'Selected GPs:',
-      mappings.length
+    UI.showToast(
+      `Generating ${rows.length} document(s)...`
     );
 
 
-    const values =
-      mappings.map(
-        letterValues
-      );
+    const items = rows.map(prepareWordData);
 
 
-    console.log(
-      'First letter data:',
-      values[0]
-    );
+    /*
+      generateDocx handles the template.
+    */
 
-
-    const report =
-      REPORTS[S.rtype];
-
-
-    console.log(
-      'Using template:',
+    const blob = await generateDocx(
+      items,
       report.tpl
     );
 
 
-    const blob =
-      await generateDocx(
-        values,
-        report.tpl
-      );
-
-
     if (!blob) {
-
       throw new Error(
-        'Word generator returned an empty file.'
+        'Word file generation failed.'
       );
-
     }
 
 
     const filename =
-      `${report.prefix}_${slug(S.district)}_${slug(S.ps)}_${slug(S.year)}.docx`;
+      `${report.prefix}_${safe(S.year)}_` +
+      `${safe(S.district)}_` +
+      `${safe(S.ps)}.docx`;
 
 
-    S.last = {
-
-      blob,
-
-      name:
-        filename
-
-    };
+    const result = $('result');
+    const rname = $('rname');
+    const dlBtn = $('dlBtn');
+    const waBtn = $('waBtn');
 
 
-    if ($('rname')) {
+    if (rname) {
+      rname.textContent = filename;
+    }
 
-      $('rname').textContent =
-        filename;
+
+    if (result) {
+      result.style.display = '';
+      result.hidden = false;
+    }
+
+
+    /*
+      Store blob for download.
+    */
+
+    S.generatedBlob = blob;
+    S.generatedFilename = filename;
+
+
+    if (dlBtn) {
+
+      dlBtn.onclick = () => {
+
+        const url =
+          URL.createObjectURL(S.generatedBlob);
+
+        const a =
+          document.createElement('a');
+
+        a.href = url;
+        a.download = S.generatedFilename;
+
+        document.body.appendChild(a);
+
+        a.click();
+
+        a.remove();
+
+        setTimeout(
+          () => URL.revokeObjectURL(url),
+          3000
+        );
+
+      };
 
     }
 
 
-    if ($('result')) {
+    /*
+      WhatsApp share.
+    */
 
-      $('result').hidden =
-        false;
+    if (waBtn) {
 
-      $('result').scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
+      waBtn.onclick = () => {
+
+        const text =
+          `Year Book Closing report ready\n` +
+          `Year: ${S.year}\n` +
+          `District: ${S.district}\n` +
+          `PS: ${S.ps}\n` +
+          `GP: ${S.gp || 'All Gram Panchayats'}\n` +
+          `File: ${filename}`;
+
+        window.open(
+          'https://wa.me/?text=' +
+          encodeURIComponent(text),
+          '_blank'
+        );
+
+      };
 
     }
 
 
-    toast(
-      `Successfully generated ${values.length} letter(s).`,
-      'ok'
-    );
-
-
-    console.log(
-      '===== GENERATION SUCCESS ====='
+    UI.showToast(
+      'Word file generated successfully.',
+      'success'
     );
 
 
   } catch (e) {
 
     console.error(
-      '===== GENERATION ERROR ====='
+      'GENERATION ERROR:',
+      e
     );
 
-    console.error(e);
-
-    console.error(
-      'message:',
-      e?.message
-    );
-
-    console.error(
-      'code:',
-      e?.code
-    );
-
-    console.error(
-      'properties:',
-      e?.properties
-    );
-
-    console.error(
-      'stack:',
-      e?.stack
-    );
-
-
-    let message =
-      getRealError(e);
-
-
-    if (
-      e?.properties?.errors?.length
-    ) {
-
-      message =
-        e.properties.errors
-          .map(x =>
-            x.properties?.explanation ||
-            x.message ||
-            String(x)
-          )
-          .join(' | ');
-
-    }
-
-
-    toast(
-      'Generate Error: ' + message,
-      'err'
-    );
-
-
-  } finally {
-
-    genButton.disabled =
-      false;
-
-    genButton.textContent =
-      oldText;
+    showError(e);
 
   }
 
 }
 
 
-// ============================================================
-// DOWNLOAD WORD
-// ============================================================
+/* =========================================================
+   DISPATCH FILE PREVIEW
+========================================================= */
 
-const downloadButton =
-  $('dlBtn');
+async function readExcelFile(file) {
 
-
-if (downloadButton) {
-
-  downloadButton.addEventListener(
-    'click',
-    () => {
-
-      if (!S.last?.blob) {
-
-        toast(
-          'No generated file available.',
-          'err'
-        );
-
-        return;
-
-      }
+  if (!file) {
+    throw new Error('Please select an Excel file.');
+  }
 
 
-      const url =
-        URL.createObjectURL(
-          S.last.blob
-        );
-
-
-      const a =
-        document.createElement('a');
-
-
-      a.href =
-        url;
-
-      a.download =
-        S.last.name;
-
-
-      document.body.appendChild(a);
-
-      a.click();
-
-      a.remove();
-
-
-      setTimeout(
-        () =>
-          URL.revokeObjectURL(url),
-        1000
-      );
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// WHATSAPP
-// ============================================================
-
-const waButton =
-  $('waBtn');
-
-
-if (waButton) {
-
-  waButton.addEventListener(
-    'click',
-    () => {
-
-      const text =
-        S.last
-          ? `Generated Word file: ${S.last.name}`
-          : 'Covering letter generated.';
-
-
-      window.open(
-        `https://wa.me/?text=${encodeURIComponent(text)}`,
-        '_blank'
-      );
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// NAVIGATION
-// ============================================================
-
-UI.setupNav(
-  view => {
-
-    console.log(
-      'View:',
-      view
+  if (!window.XLSX) {
+    throw new Error(
+      'Excel library not loaded. Please refresh page.'
     );
-
-
-    if (
-      view === 'data'
-    ) {
-
-      renderDispatchData();
-
-    }
-
-
-    if (
-      view === 'upload'
-    ) {
-
-      setupUploadView();
-
-    }
-
-  }
-);
-
-
-// ============================================================
-// FILTER DATA
-// ============================================================
-
-function buildFilterControls() {
-
-  const years =
-    [...new Set(
-      S.dispatches
-        .map(getDispatchYear)
-        .filter(Boolean)
-    )].sort();
-
-
-  if ($('fYear')) {
-
-    $('fYear').innerHTML =
-      `<option value="">All Years</option>` +
-      years
-        .map(y =>
-          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
-        )
-        .join('');
-
   }
 
 
-  const districts =
-    [...new Set(
-      S.dispatches
-        .map(getDispatchDistrict)
-        .filter(Boolean)
-    )].sort();
+  const buffer =
+    await file.arrayBuffer();
 
 
-  if ($('fDist')) {
-
-    $('fDist').innerHTML =
-      `<option value="">All Districts</option>` +
-      districts
-        .map(x =>
-          `<option value="${UI.esc(x)}">${UI.esc(x)}</option>`
-        )
-        .join('');
-
-  }
-
-
-  if ($('fPs')) {
-
-    $('fPs').innerHTML =
-      `<option value="">All Panchayat Samiti</option>`;
-
-  }
-
-
-  if ($('fStatus')) {
-
-    $('fStatus').innerHTML = `
-      <option value="">All Status</option>
-      <option value="with">With Dispatch</option>
-      <option value="without">Without Dispatch</option>
-    `;
-
-  }
-
-
-  [
-    'fYear',
-    'fDist',
-    'fPs',
-    'fStatus',
-    'fSearch'
-  ]
-    .forEach(id => {
-
-      const el =
-        $(id);
-
-      if (!el) return;
-
-
-      el.addEventListener(
-        'input',
-        renderDispatchData
-      );
-
-      el.addEventListener(
-        'change',
-        renderDispatchData
-      );
-
+  const wb =
+    XLSX.read(buffer, {
+      type: 'array'
     });
 
+
+  const first =
+    wb.Sheets[wb.SheetNames[0]];
+
+
+  const rows =
+    XLSX.utils.sheet_to_json(
+      first,
+      {
+        defval: ''
+      }
+    );
+
+
+  return rows;
+
 }
 
 
-// ============================================================
-// RENDER DISPATCH DATA
-// ============================================================
+/* =========================================================
+   DISPATCH PREVIEW
+========================================================= */
 
-function renderDispatchData() {
+async function previewDispatchFile() {
 
-  const out =
-    $('dataOut');
+  try {
 
+    const file = $('file')?.files?.[0];
+
+    if (!file) {
+      throw new Error(
+        'Please select Dispatch Excel file.'
+      );
+    }
+
+
+    const rows =
+      await readExcelFile(file);
+
+
+    S.dispatchPreview = rows;
+
+
+    const info = $('fileInfo');
+
+    if (info) {
+
+      info.textContent =
+        `${rows.length} rows loaded from ${file.name}`;
+
+    }
+
+
+    const preview = $('preview');
+
+    if (preview) {
+
+      preview.innerHTML =
+        makeTable(rows.slice(0, 20));
+
+    }
+
+
+    const prevBtn = $('prevBtn');
+
+    if (prevBtn) {
+      prevBtn.disabled = false;
+    }
+
+
+    UI.showToast(
+      `${rows.length} rows ready for upload.`,
+      'success'
+    );
+
+
+  } catch (e) {
+
+    showError(e);
+
+  }
+
+}
+
+
+/* =========================================================
+   DISPATCH UPLOAD
+========================================================= */
+
+async function uploadDispatchFile() {
+
+  try {
+
+    if (!S.dispatchPreview.length) {
+
+      await previewDispatchFile();
+
+    }
+
+
+    if (!S.dispatchPreview.length) {
+      return;
+    }
+
+
+    const year =
+      safe(
+        $('uploadYear')?.value ||
+        $('year')?.value ||
+        S.year
+      );
+
+
+    if (!year) {
+      throw new Error(
+        'Please select/upload year.'
+      );
+    }
+
+
+    const existingIds =
+      new Set(
+        S.dispatches.map(
+          r => r._id
+        )
+      );
+
+
+    const res =
+      await uploadDispatchRows(
+        S.dispatchPreview,
+        year,
+        existingIds,
+        (done, total) => {
+
+          const el = $('upRes');
+
+          if (el) {
+            el.textContent =
+              `Uploading ${done}/${total}...`;
+          }
+
+        }
+      );
+
+
+    const el = $('upRes');
+
+    if (el) {
+
+      el.textContent =
+        `Inserted: ${res.inserted}, ` +
+        `Updated: ${res.updated}, ` +
+        `Skipped: ${res.skipped}, ` +
+        `Errors: ${res.errors}`;
+
+    }
+
+
+    UI.showToast(
+      'Dispatch upload completed.',
+      'success'
+    );
+
+
+    await loadData();
+
+
+  } catch (e) {
+
+    showError(e);
+
+  }
+
+}
+
+
+/* =========================================================
+   MAPPING PREVIEW
+========================================================= */
+
+async function previewMappingFile() {
+
+  try {
+
+    const file = $('mFile')?.files?.[0];
+
+    if (!file) {
+      throw new Error(
+        'Please select Mapping Excel file.'
+      );
+    }
+
+
+    const rows =
+      await readExcelFile(file);
+
+
+    S.mappingPreview = rows;
+
+
+    const info = $('mInfo');
+
+    if (info) {
+
+      info.textContent =
+        `${rows.length} mapping rows loaded from ${file.name}`;
+
+    }
+
+
+    UI.showToast(
+      `${rows.length} mapping rows ready.`,
+      'success'
+    );
+
+
+  } catch (e) {
+
+    showError(e);
+
+  }
+
+}
+
+
+/* =========================================================
+   MAPPING UPLOAD
+========================================================= */
+
+async function uploadMappingFile() {
+
+  try {
+
+    if (!S.mappingPreview.length) {
+      await previewMappingFile();
+    }
+
+
+    if (!S.mappingPreview.length) {
+      return;
+    }
+
+
+    const existingIds =
+      new Set(
+        S.mappings.map(
+          r => r._id
+        )
+      );
+
+
+    const res =
+      await uploadMappingRows(
+        S.mappingPreview,
+        existingIds,
+        (done, total) => {
+
+          const el = $('mRes');
+
+          if (el) {
+            el.textContent =
+              `Uploading ${done}/${total}...`;
+          }
+
+        }
+      );
+
+
+    const el = $('mRes');
+
+    if (el) {
+
+      el.textContent =
+        `Inserted: ${res.inserted}, ` +
+        `Updated: ${res.updated}, ` +
+        `Skipped: ${res.skipped}, ` +
+        `Errors: ${res.errors}`;
+
+    }
+
+
+    UI.showToast(
+      'Mapping upload completed.',
+      'success'
+    );
+
+
+    await loadData();
+
+
+  } catch (e) {
+
+    showError(e);
+
+  }
+
+}
+
+
+/* =========================================================
+   SIMPLE HTML TABLE
+========================================================= */
+
+function makeTable(rows) {
+
+  if (!rows?.length) {
+    return '<p>No data.</p>';
+  }
+
+
+  const headers =
+    unique(
+      rows.flatMap(
+        r => Object.keys(r)
+      )
+    );
+
+
+  const head =
+    headers
+      .map(
+        h => `<th>${UI.esc(h)}</th>`
+      )
+      .join('');
+
+
+  const body =
+    rows
+      .map(r => {
+
+        return `
+          <tr>
+            ${
+              headers
+                .map(
+                  h =>
+                    `<td>${UI.esc(r[h])}</td>`
+                )
+                .join('')
+            }
+          </tr>
+        `;
+
+      })
+      .join('');
+
+
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>${head}</tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  `;
+
+}
+
+
+/* =========================================================
+   DATA VIEW
+========================================================= */
+
+function renderDataView() {
+
+  const out = $('dataOut');
 
   if (!out) return;
 
 
   const year =
-    safe(
-      $('fYear')?.value
-    );
+    norm($('fYear')?.value);
 
-
-  const district =
-    safe(
-      $('fDist')?.value
-    );
-
+  const dist =
+    norm($('fDist')?.value);
 
   const ps =
-    safe(
-      $('fPs')?.value
-    );
-
+    norm($('fPs')?.value);
 
   const status =
-    safe(
-      $('fStatus')?.value
-    );
-
+    norm($('fStatus')?.value);
 
   const search =
-    norm(
-      $('fSearch')?.value
-    );
+    norm($('fSearch')?.value);
 
 
-  let rows =
-    S.dispatches.filter(d => {
+  const rows =
+    S.dispatches.filter(r => {
 
-      const y =
-        getDispatchYear(d);
-
-      const dist =
-        getDispatchDistrict(d);
-
-      const p =
-        getDispatchPS(d);
-
-      const gp =
-        getDispatchGP(d);
-
-      const no =
-        getDispatchNumber(d);
+      const text =
+        norm(
+          Object
+            .values(r)
+            .join(' ')
+        );
 
 
       if (
         year &&
-        norm(y) !== norm(year)
+        norm(r.Year) !== year
       ) {
         return false;
       }
 
 
       if (
-        district &&
-        norm(dist) !== norm(district)
+        dist &&
+        norm(
+          r.District ??
+          r.DIST_EN
+        ) !== dist
       ) {
         return false;
       }
@@ -2371,38 +1738,31 @@ function renderDispatchData() {
 
       if (
         ps &&
-        norm(p) !== norm(ps)
+        norm(
+          r.PS ??
+          r.PS_EN
+        ) !== ps
       ) {
         return false;
       }
 
 
-      if (status === 'with' && !no) {
+      if (
+        status &&
+        norm(
+          r.Status ??
+          r.status
+        ) !== status
+      ) {
         return false;
       }
 
 
-      if (status === 'without' && no) {
+      if (
+        search &&
+        !text.includes(search)
+      ) {
         return false;
-      }
-
-
-      if (search) {
-
-        const hay =
-          norm(
-            `${gp} ${p} ${dist} ${no}`
-          );
-
-
-        if (
-          !hay.includes(search)
-        ) {
-
-          return false;
-
-        }
-
       }
 
 
@@ -2411,171 +1771,420 @@ function renderDispatchData() {
     });
 
 
-  rows =
-    rows.slice(0, 500);
+  out.innerHTML =
+    `<p>${rows.length} record(s)</p>` +
+    makeTable(rows.slice(0, 200));
+
+}
 
 
-  if (!rows.length) {
+/* =========================================================
+   DATA FILTER DROPDOWNS
+========================================================= */
 
-    out.innerHTML =
-      `<p class="muted">No records found.</p>`;
+function setupDataFilters() {
 
+  const fy = $('fYear');
+  const fd = $('fDist');
+  const fp = $('fPs');
+
+
+  if (fy) {
+
+    UI.fillSelect(
+      fy,
+      getYears().map(v => ({
+        v,
+        t: v
+      })),
+      'All Years'
+    );
+
+  }
+
+
+  if (fd) {
+
+    UI.fillSelect(
+      fd,
+      getDistricts().map(v => ({
+        v,
+        t: v
+      })),
+      'All Districts'
+    );
+
+  }
+
+
+  if (fp) {
+
+    UI.fillSelect(
+      fp,
+      getPSList().map(v => ({
+        v,
+        t: v
+      })),
+      'All PS'
+    );
+
+  }
+
+
+  [
+    fy,
+    fd,
+    fp,
+    $('fStatus'),
+    $('fSearch')
+  ]
+    .filter(Boolean)
+    .forEach(el => {
+
+      el.addEventListener(
+        'input',
+        renderDataView
+      );
+
+      el.addEventListener(
+        'change',
+        renderDataView
+      );
+
+    });
+
+}
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+function setupEvents() {
+
+  /*
+    Google Login
+  */
+
+  const gBtn = $('gBtn');
+
+  if (gBtn) {
+
+    gBtn.onclick = async () => {
+
+      try {
+
+        gBtn.disabled = true;
+
+        gBtn.textContent =
+          'Signing in...';
+
+        await googleLogin();
+
+      } catch (e) {
+
+        console.error(e);
+
+        const lerr = $('lerr');
+
+        if (lerr) {
+
+          lerr.textContent =
+            e?.message ||
+            'Login failed.';
+
+        }
+
+      } finally {
+
+        gBtn.disabled = false;
+
+        gBtn.textContent =
+          'Continue with Google';
+
+      }
+
+    };
+
+  }
+
+
+  /*
+    Logout
+  */
+
+  document.addEventListener(
+    'click',
+    e => {
+
+      const el =
+        e.target.closest(
+          '[data-action="logout"],#logoutBtn'
+        );
+
+      if (!el) return;
+
+      logout().catch(showError);
+
+    }
+  );
+
+
+  /*
+    Report type buttons
+  */
+
+  document
+    .querySelectorAll('#rtypes [data-t]')
+    .forEach(btn => {
+
+      btn.addEventListener(
+        'click',
+        () => {
+
+          setReportType(
+            btn.dataset.t
+          );
+
+        }
+      );
+
+    });
+
+
+  /*
+    Year
+  */
+
+  const year = $('year');
+
+  if (year) {
+
+    year.addEventListener(
+      'change',
+      () => {
+
+        S.year = year.value;
+
+        populateDistrict();
+        populatePS();
+        populateGP();
+        updateInfo();
+
+      }
+    );
+
+  }
+
+
+  /*
+    District
+  */
+
+  const dist = $('dist');
+
+  if (dist) {
+
+    dist.addEventListener(
+      'change',
+      () => {
+
+        S.district = dist.value;
+
+        populatePS();
+        populateGP();
+        updateInfo();
+
+      }
+    );
+
+  }
+
+
+  /*
+    PS
+  */
+
+  const ps = $('ps');
+
+  if (ps) {
+
+    ps.addEventListener(
+      'change',
+      () => {
+
+        S.ps = ps.value;
+
+        populateGP();
+        updateInfo();
+
+      }
+    );
+
+  }
+
+
+  /*
+    GP
+  */
+
+  const gp = $('gp');
+
+  if (gp) {
+
+    gp.addEventListener(
+      'change',
+      () => {
+
+        S.gp = gp.value;
+
+        updateInfo();
+
+      }
+    );
+
+  }
+
+
+  /*
+    Generate
+  */
+
+  const genBtn = $('genBtn');
+
+  if (genBtn) {
+
+    genBtn.addEventListener(
+      'click',
+      generateReport
+    );
+
+  }
+
+
+  /*
+    Dispatch file
+  */
+
+  const file = $('file');
+
+  if (file) {
+
+    file.addEventListener(
+      'change',
+      previewDispatchFile
+    );
+
+  }
+
+
+  const prevBtn = $('prevBtn');
+
+  if (prevBtn) {
+
+    prevBtn.addEventListener(
+      'click',
+      previewDispatchFile
+    );
+
+  }
+
+
+  const upBtn = $('upBtn');
+
+  if (upBtn) {
+
+    upBtn.addEventListener(
+      'click',
+      uploadDispatchFile
+    );
+
+  }
+
+
+  /*
+    Mapping
+  */
+
+  const mFile = $('mFile');
+
+  if (mFile) {
+
+    mFile.addEventListener(
+      'change',
+      previewMappingFile
+    );
+
+  }
+
+
+  const mBtn = $('mBtn');
+
+  if (mBtn) {
+
+    mBtn.addEventListener(
+      'click',
+      uploadMappingFile
+    );
+
+  }
+
+
+  /*
+    Reload
+  */
+
+  const reloadBtn = $('reloadBtn');
+
+  if (reloadBtn) {
+
+    reloadBtn.addEventListener(
+      'click',
+      async () => {
+
+        await loadData();
+
+        setupDataFilters();
+
+      }
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function setupNavigation() {
+
+  if (!UI.setupNav) {
     return;
-
   }
 
 
-  const keys =
-    Object.keys(rows[0])
-      .filter(
-        k => k !== '_id'
-      )
-      .slice(0, 10);
+  UI.setupNav(
+    view => {
+
+      console.log(
+        'Opened view:',
+        view
+      );
 
 
-  out.innerHTML = `
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            ${keys
-              .map(k =>
-                `<th>${UI.esc(k)}</th>`
-              )
-              .join('')}
-          </tr>
-        </thead>
+      if (view === 'generate') {
 
-        <tbody>
+        refreshGenerator();
 
-          ${rows
-            .map(row => `
-              <tr>
-                ${keys
-                  .map(k =>
-                    `<td>${UI.esc(row[k])}</td>`
-                  )
-                  .join('')}
-              </tr>
-            `)
-            .join('')}
-
-        </tbody>
-      </table>
-    </div>
-
-    <p class="muted">
-      Showing ${rows.length} record(s)
-    </p>
-  `;
-
-}
+      }
 
 
-// ============================================================
-// UPLOAD VIEW
-// ============================================================
+      if (view === 'data') {
 
-function setupUploadView() {
-
-  if (!isAdmin()) {
-
-    if ($('noAdmin')) {
-      $('noAdmin').style.display =
-        '';
-    }
-
-    if ($('upBox')) {
-      $('upBox').hidden =
-        true;
-    }
-
-    return;
-
-  }
-
-
-  if ($('noAdmin')) {
-
-    $('noAdmin').style.display =
-      'none';
-
-  }
-
-
-  if ($('upBox')) {
-
-    $('upBox').hidden =
-      false;
-
-  }
-
-}
-
-
-// ============================================================
-// DISPATCH FILE PREVIEW
-// ============================================================
-
-let dispatchRows = [];
-
-
-const dispatchFile =
-  $('file');
-
-
-if (dispatchFile) {
-
-  dispatchFile.addEventListener(
-    'change',
-    async () => {
-
-      const file =
-        dispatchFile.files?.[0];
-
-
-      if (!file) return;
-
-
-      try {
-
-        dispatchRows =
-          await readExcel(file);
-
-
-        if ($('fileInfo')) {
-
-          $('fileInfo').textContent =
-            `${dispatchRows.length} rows loaded`;
-
-        }
-
-
-        if ($('prevBtn')) {
-
-          $('prevBtn').disabled =
-            !dispatchRows.length;
-
-        }
-
-
-        if ($('upBtn')) {
-
-          $('upBtn').disabled =
-            !dispatchRows.length;
-
-        }
-
-
-      } catch (e) {
-
-        console.error(e);
-
-        toast(
-          'Excel error: ' +
-          getRealError(e),
-          'err'
-        );
+        setupDataFilters();
+        renderDataView();
 
       }
 
@@ -2585,236 +2194,50 @@ if (dispatchFile) {
 }
 
 
-// ============================================================
-// EXCEL READER
-// ============================================================
+/* =========================================================
+   AUTH STATE
+========================================================= */
 
-async function readExcel(file) {
+function setupAuth() {
 
-  if (
-    typeof XLSX ===
-    'undefined'
-  ) {
+  onUser(
+    async user => {
 
-    throw new Error(
-      'XLSX library is not loaded.'
-    );
+      console.log(
+        'AUTH STATE:',
+        user
+      );
 
-  }
 
+      if (user) {
 
-  const buffer =
-    await file.arrayBuffer();
+        S.user = user;
 
+        updateUserUI(user);
 
-  const workbook =
-    XLSX.read(
-      buffer,
-      {
-        type: 'array'
-      }
-    );
+        /*
+          VERY IMPORTANT:
+          This fixes the blank page after login.
+        */
 
+        showApp();
 
-  const sheet =
-    workbook.Sheets[
-      workbook.SheetNames[0]
-    ];
 
-
-  if (!sheet) {
-
-    throw new Error(
-      'Excel sheet not found.'
-    );
-
-  }
-
-
-  return XLSX.utils.sheet_to_json(
-    sheet,
-    {
-      defval: ''
-    }
-  );
-
-}
-
-
-// ============================================================
-// PREVIEW BUTTON
-// ============================================================
-
-if ($('prevBtn')) {
-
-  $('prevBtn').addEventListener(
-    'click',
-    () => {
-
-      const preview =
-        $('preview');
-
-
-      if (!preview) return;
-
-
-      const rows =
-        dispatchRows.slice(0, 20);
-
-
-      if (!rows.length) {
-
-        preview.innerHTML =
-          '<p>No data.</p>';
-
-        return;
-
-      }
-
-
-      const keys =
-        Object.keys(rows[0]);
-
-
-      preview.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              ${keys
-                .map(k =>
-                  `<th>${UI.esc(k)}</th>`
-                )
-                .join('')}
-            </tr>
-          </thead>
-
-          <tbody>
-
-            ${rows
-              .map(r => `
-                <tr>
-                  ${keys
-                    .map(k =>
-                      `<td>${UI.esc(r[k])}</td>`
-                    )
-                    .join('')}
-                </tr>
-              `)
-              .join('')}
-
-          </tbody>
-        </table>
-      `;
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// DISPATCH UPLOAD
-// ============================================================
-
-if ($('upBtn')) {
-
-  $('upBtn').addEventListener(
-    'click',
-    async () => {
-
-      if (!isAdmin()) {
-
-        toast(
-          'Admin access required.',
-          'err'
-        );
-
-        return;
-
-      }
-
-
-      if (!dispatchRows.length) {
-
-        toast(
-          'Please select an Excel file first.',
-          'err'
-        );
-
-        return;
-
-      }
-
-
-      const year =
-        safe(
-          $('upYear')?.value
-        ) ||
-        S.year;
-
-
-      const button =
-        $('upBtn');
-
-
-      button.disabled =
-        true;
-
-
-      try {
-
-        const existing =
-          new Set(
-            S.dispatches
-              .map(d => d._id)
-              .filter(Boolean)
-          );
-
-
-        const result =
-          await uploadDispatchRows(
-            dispatchRows,
-            year,
-            existing,
-            (done, total) => {
-
-              button.textContent =
-                `Uploading ${done}/${total}`;
-
-            }
-          );
-
-
-        toast(
-          `Upload complete. Added: ${result.inserted}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
-          'ok'
-        );
-
-
-        button.textContent =
-          'Upload / Update Firestore';
-
+        /*
+          Load Firestore after shell is visible.
+        */
 
         await loadData();
 
 
-      } catch (e) {
+        setupDataFilters();
 
-        console.error(e);
 
-        toast(
-          'Upload error: ' +
-          getRealError(e),
-          'err'
-        );
+      } else {
 
-      } finally {
+        S.user = null;
 
-        button.disabled =
-          false;
-
-        button.textContent =
-          'Upload / Update Firestore';
+        showLogin();
 
       }
 
@@ -2824,276 +2247,69 @@ if ($('upBtn')) {
 }
 
 
-// ============================================================
-// MAPPING FILE
-// ============================================================
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
-let mappingRows =
-  [];
+function init() {
 
-
-const mappingFile =
-  $('mFile');
-
-
-if (mappingFile) {
-
-  mappingFile.addEventListener(
-    'change',
-    async () => {
-
-      const file =
-        mappingFile.files?.[0];
-
-
-      if (!file) return;
-
-
-      try {
-
-        mappingRows =
-          await readExcel(file);
-
-
-        if ($('mInfo')) {
-
-          $('mInfo').textContent =
-            `${mappingRows.length} mapping rows loaded`;
-
-        }
-
-
-        if ($('mBtn')) {
-
-          $('mBtn').disabled =
-            !mappingRows.length;
-
-        }
-
-
-      } catch (e) {
-
-        console.error(e);
-
-        toast(
-          'Mapping Excel error: ' +
-          getRealError(e),
-          'err'
-        );
-
-      }
-
-    }
+  console.log(
+    'Jamidara app initializing...'
   );
 
+
+  /*
+    Initially show login state.
+  */
+
+  showLogin();
+
+
+  /*
+    Event listeners.
+  */
+
+  setupEvents();
+
+
+  /*
+    Drawer/navigation.
+  */
+
+  setupNavigation();
+
+
+  /*
+    Default report.
+  */
+
+  setReportType('ybc');
+
+
+  /*
+    Firebase Auth listener.
+  */
+
+  setupAuth();
+
 }
 
 
-// ============================================================
-// MAPPING UPLOAD
-// ============================================================
+/* =========================================================
+   START
+========================================================= */
 
-if ($('mBtn')) {
+if (
+  document.readyState === 'loading'
+) {
 
-  $('mBtn').addEventListener(
-    'click',
-    async () => {
-
-      if (!isAdmin()) {
-
-        toast(
-          'Admin access required.',
-          'err'
-        );
-
-        return;
-
-      }
-
-
-      if (!mappingRows.length) {
-
-        toast(
-          'Please select mapping Excel first.',
-          'err'
-        );
-
-        return;
-
-      }
-
-
-      const button =
-        $('mBtn');
-
-
-      button.disabled =
-        true;
-
-
-      try {
-
-        const existing =
-          new Set(
-            S.mappings
-              .map(d => d._id)
-              .filter(Boolean)
-          );
-
-
-        const result =
-          await uploadMappingRows(
-            mappingRows,
-            existing,
-            (done, total) => {
-
-              button.textContent =
-                `Uploading ${done}/${total}`;
-
-            }
-          );
-
-
-        toast(
-          `Mapping upload complete. Added: ${result.inserted}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
-          'ok'
-        );
-
-
-        button.textContent =
-          'Upload Mapping to Firestore';
-
-
-        await loadData();
-
-
-      } catch (e) {
-
-        console.error(e);
-
-        toast(
-          'Mapping upload error: ' +
-          getRealError(e),
-          'err'
-        );
-
-      } finally {
-
-        button.disabled =
-          false;
-
-        button.textContent =
-          'Upload Mapping to Firestore';
-
-      }
-
-    }
+  document.addEventListener(
+    'DOMContentLoaded',
+    init
   );
 
-}
+} else {
 
-
-// ============================================================
-// RELOAD DATA
-// ============================================================
-
-if ($('reloadBtn')) {
-
-  $('reloadBtn').addEventListener(
-    'click',
-    async () => {
-
-      try {
-
-        $('reloadBtn').disabled =
-          true;
-
-        $('reloadBtn').textContent =
-          'Reloading...';
-
-
-        await loadData();
-
-
-        toast(
-          'Data reloaded successfully.',
-          'ok'
-        );
-
-
-      } catch (e) {
-
-        toast(
-          'Reload error: ' +
-          getRealError(e),
-          'err'
-        );
-
-
-      } finally {
-
-        $('reloadBtn').disabled =
-          false;
-
-        $('reloadBtn').textContent =
-          '🔄 Reload data from Firestore';
-
-      }
-
-    }
-  );
+  init();
 
 }
-
-
-// ============================================================
-// REAL ERROR
-// ============================================================
-
-function getRealError(e) {
-
-  if (
-    e?.properties?.errors?.length
-  ) {
-
-    return e.properties.errors
-      .map(x =>
-        x.properties?.explanation ||
-        x.message ||
-        String(x)
-      )
-      .join(' | ');
-
-  }
-
-
-  if (e?.message) {
-
-    return e.message;
-
-  }
-
-
-  if (e?.code) {
-
-    return e.code;
-
-  }
-
-
-  return String(e);
-
-}
-
-
-// ============================================================
-// INITIAL STATE
-// ============================================================
-
-console.log(
-  'Jamidara app.js loaded successfully.'
-);
-
-console.log(
-  'Waiting for Firebase authentication...'
-);

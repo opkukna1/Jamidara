@@ -1,59 +1,31 @@
-import * as FS from './js/firestore.js';
+import { db, auth } from './js/firebase-config.js';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+import {
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
 import * as UI from './js/ui.js';
-import { generateDocx, download } from './js/docx-generator.js';
-import { buildAmsReport, parseDate, normPS } from './js/ams-report.js';
-
-const { $, norm, esc, showToast } = UI;
-
-// ============================================================
-// GOOGLE LOGIN
-// ============================================================
-
-$('gBtn').onclick = () => {
-  $('lerr').textContent = '';
-
-  FS.googleLogin().catch(e => {
-    console.error(e);
-    $('lerr').textContent =
-      UI.friendly(e) + ' [' + (e.code || e.message) + ']';
-  });
-};
-
-window.addEventListener('error', ev => {
-  if (!document.body.classList.contains('authed')) {
-    $('lerr').textContent = 'Error: ' + ev.message;
-  }
-});
+import { generateDocx } from './js/docx-generator.js';
 
 
 // ============================================================
-// FIELD MAPPING
-// ============================================================
-
-const F = {
-  dispatchNo: 'Audit Party No',
-  dispatchDate: 'Planned Start Date',
-  paraNo: 'Converted to Para'
-};
-
-
-// ============================================================
-// ADMIN EMAIL
-// IMPORTANT: FIRESTORE RULES MEIN BHI YEHI EMAIL HONA CHAHIYE
+// CONFIG
 // ============================================================
 
 const ADMIN_EMAILS = [
   'opsiddh42@gmail.com'
 ];
 
-
-// ============================================================
-// REPORT TYPES
-// template/ FOLDER KE ANDAR EXACT FILE NAMES
-// ============================================================
-
 const REPORTS = {
-
   ams: {
     tpl: 'ams-report.docx',
     prefix: 'AMS_Report'
@@ -68,77 +40,213 @@ const REPORTS = {
     tpl: 'intimation-report.docx',
     prefix: 'Intimation_Report'
   }
-
 };
 
 
 // ============================================================
-// REQUIRED DISPATCH COLUMNS
-// ============================================================
-
-const REQUIRED = [
-  'Unit Name',
-  'Unit ID',
-  'Parent Name',
-  'District Name'
-];
-
-
-// ============================================================
-// DEFAULT YEARS
-// ============================================================
-
-const DEFAULT_YEARS = [
-  '2025-26',
-  '2026-27'
-];
-
-
-// ============================================================
-// GLOBAL STATE
+// STATE
 // ============================================================
 
 const S = {
-  maps: [],
-  disp: [],
-  mapIdx: new Map(),
-  tree: {},
-  years: [],
-  admin: false,
+  user: null,
+  mappings: [],
+  dispatches: [],
+  filteredMappings: [],
   rtype: 'ams',
-  amsMode: 1,
-  last: null,
-  rows: [],
-  ids: new Set()
+  year: '2025-26',
+  district: '',
+  ps: '',
+  gp: 'ALL',
+  last: null
 };
 
 
 // ============================================================
-// LOAD ALL DATA
+// SHORT HELPERS
 // ============================================================
 
-async function loadAll() {
+const $ = id => document.getElementById(id);
+
+function safe(v) {
+  return v == null ? '' : String(v).trim();
+}
+
+function norm(v) {
+  return safe(v)
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function slug(v) {
+  return safe(v)
+    .replace(/[^\w\u0900-\u097F-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function today() {
+  const d = new Date();
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = d.getFullYear();
+
+  return `${dd}-${mm}-${yy}`;
+}
+
+function showError(msg) {
+  console.error(msg);
+  UI.showToast(msg, 'err');
+}
+
+
+// ============================================================
+// AUTH
+// ============================================================
+
+onAuthStateChanged(auth, async user => {
+
+  S.user = user || null;
+
+  if (!user) {
+    console.log('No logged-in user');
+
+    if ($('login')) {
+      $('login').hidden = false;
+    }
+
+    if ($('app')) {
+      $('app').hidden = true;
+    }
+
+    return;
+  }
+
+  console.log('Logged in:', user.email);
+
+  if ($('login')) {
+    $('login').hidden = true;
+  }
+
+  if ($('app')) {
+    $('app').hidden = false;
+  }
+
+  await loadData();
+});
+
+
+// ============================================================
+// LOGIN
+// ============================================================
+
+if ($('loginForm')) {
+
+  $('loginForm').addEventListener('submit', async e => {
+
+    e.preventDefault();
+
+    const email = safe($('email')?.value);
+    const password = $('password')?.value || '';
+
+    if (!email || !password) {
+      showError('Email और password डालें.');
+      return;
+    }
+
+    try {
+
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+    } catch (e) {
+
+      console.error('LOGIN ERROR:', e);
+
+      showError(
+        e?.message ||
+        'Login failed.'
+      );
+    }
+  });
+}
+
+
+// ============================================================
+// LOGOUT
+// ============================================================
+
+if ($('logoutBtn')) {
+
+  $('logoutBtn').addEventListener('click', async () => {
+
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    }
+
+  });
+}
+
+
+// ============================================================
+// LOAD FIRESTORE DATA
+// ============================================================
+
+async function loadData() {
 
   try {
 
-    [S.maps, S.disp] = await Promise.all([
-      FS.loadMappings(),
-      FS.loadDispatchData()
-    ]);
+    console.log('Loading mappings...');
 
-    S.ids = new Set(
-      S.disp.map(d => d._id)
+    const mappingSnap = await getDocs(
+      collection(db, 'mappings')
     );
 
-    buildIndexes();
-    initSelectors();
+    S.mappings = mappingSnap.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }));
+
+    console.log(
+      'Mappings loaded:',
+      S.mappings.length
+    );
+
+
+    console.log('Loading dispatches...');
+
+    const dispatchSnap = await getDocs(
+      collection(db, 'dispatches')
+    );
+
+    S.dispatches = dispatchSnap.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }));
+
+    console.log(
+      'Dispatches loaded:',
+      S.dispatches.length
+    );
+
+
+    buildDistricts();
+
+    updateUI();
 
   } catch (e) {
 
-    console.error(e);
+    console.error('FIRESTORE LOAD ERROR:', e);
 
-    showToast(
-      UI.friendly(e),
+    UI.showToast(
+      e?.message ||
+      'Firestore data load failed.',
       'err'
     );
   }
@@ -146,626 +254,398 @@ async function loadAll() {
 
 
 // ============================================================
-// MAPPING KEY
+// DISTRICT
 // ============================================================
 
-const mkey = (d, p, g) => [
-  norm(d),
-  norm(p),
-  norm(g)
-].join('|');
+function buildDistricts() {
 
-
-// ============================================================
-// FIND MAPPING
-// ============================================================
-
-function findMapping(r) {
-
-  return S.mapIdx.get(
-    mkey(
-      r['District Name'],
-      r['Parent Name'],
-      r['Unit Name']
+  const districts = [
+    ...new Set(
+      S.mappings
+        .map(x =>
+          safe(
+            x.DIST_EN ||
+            x.DISTRICT_EN ||
+            x.district ||
+            x.District
+          )
+        )
+        .filter(Boolean)
     )
-  );
-}
-
-
-// ============================================================
-// BUILD INDEXES
-// ============================================================
-
-function buildIndexes() {
-
-  S.mapIdx = new Map(
-    S.maps.map(m => [
-      mkey(
-        m.DIST_EN,
-        m.PS_EN,
-        m.GP_EN
-      ),
-      m
-    ])
-  );
-
-  S.tree = {};
-
-  for (const r of S.disp) {
-
-    const y = r.Year || '';
-    const d = r['District Name'];
-    const p = r['Parent Name'];
-
-    // PS rows without parent are only used by AMS
-    if (!String(p || '').trim()) continue;
-
-    (
-      (
-        (
-          S.tree[y] ??= {}
-        )[d] ??= {}
-      )[p] ??= []
-    ).push(r);
-  }
-
-  S.years = [
-    ...new Set([
-      ...DEFAULT_YEARS,
-      ...Object.keys(S.tree).filter(Boolean)
-    ])
   ].sort();
 
-  $('stD').textContent = S.disp.length;
-  $('stM').textContent = S.maps.length;
-  $('stY').textContent = S.years.length;
+  const select = $('district');
+
+  if (!select) return;
+
+  select.innerHTML =
+    `<option value="">Select District</option>` +
+    districts
+      .map(d =>
+        `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`
+      )
+      .join('');
+
 }
 
 
 // ============================================================
-// HINDI MAPPING HELPER
+// DISTRICT CHANGE
 // ============================================================
 
-const hi = (r, f, k) => {
+if ($('district')) {
 
-  const m = findMapping(r);
+  $('district').addEventListener(
+    'change',
+    () => {
 
-  return m && m[k]
-    ? m[k]
-    : null;
-};
+      S.district = $('district').value;
+      S.ps = '';
+      S.gp = 'ALL';
 
+      buildPS();
+      buildGP();
 
-// ============================================================
-// LABEL
-// ============================================================
-
-const label = (en, hiTxt) => {
-
-  return hiTxt
-    ? `${en} (${hiTxt})`
-    : en;
-};
-
-
-// ============================================================
-// OPTIONS
-// ============================================================
-
-const opts = arr =>
-  arr.map(x => ({
-    v: x,
-    t: x
-  }));
-
-
-// ============================================================
-// INITIAL SELECTORS
-// ============================================================
-
-function initSelectors() {
-
-  UI.fillSelect(
-    $('year'),
-    opts(S.years),
-    'Select year'
+      updateCount();
+    }
   );
-
-  populateDistricts();
-  renderAmsPs();
-
-  UI.fillSelect(
-    $('upYear'),
-    opts(S.years)
-  );
-
-  UI.fillSelect(
-    $('fYear'),
-    opts(S.years),
-    'All years'
-  );
-
-  renderData();
 }
 
 
 // ============================================================
-// RECORDS
+// BUILD PS
 // ============================================================
 
-function recs(y, d, p) {
+function buildPS() {
 
-  return (
-    (
-      S.tree[y] || {}
-    )[d] || {}
-  )[p] || [];
-}
+  const select = $('ps');
 
+  if (!select) return;
 
-// ============================================================
-// DISTRICT DROPDOWN
-// ============================================================
+  const rows = S.mappings.filter(x => {
 
-function populateDistricts() {
-
-  const t =
-    S.tree[$('year').value] || {};
-
-  const items =
-    Object.keys(t)
-      .sort()
-      .map(d => {
-
-        const m = S.maps.find(
-          m =>
-            norm(m.DIST_EN) === norm(d)
-        );
-
-        return {
-          v: d,
-          t: label(
-            d,
-            m && m.DIST_HI
-          )
-        };
-      });
-
-  UI.fillSelect(
-    $('dist'),
-    items,
-    'Select district'
-  );
-
-  populatePS();
-}
-
-
-// ============================================================
-// PANCHAYAT SAMITI DROPDOWN
-// ============================================================
-
-function populatePS() {
-
-  const t =
-    (
-      S.tree[$('year').value] || {}
-    )[$('dist').value] || {};
-
-  const items =
-    Object.keys(t)
-      .sort()
-      .map(p => {
-
-        const m = S.maps.find(
-          m =>
-            norm(m.PS_EN) === norm(p) &&
-            norm(m.DIST_EN) ===
-              norm($('dist').value)
-        );
-
-        return {
-          v: p,
-          t: label(
-            p.replace(
-              /panchayat samiti/i,
-              ''
-            ).trim() || p,
-            m && m.PS_HI
-          )
-        };
-      });
-
-  UI.fillSelect(
-    $('ps'),
-    items,
-    'Select panchayat samiti'
-  );
-
-  populateGPs();
-}
-
-
-// ============================================================
-// GRAM PANCHAYAT DROPDOWN
-// ============================================================
-
-function populateGPs() {
-
-  const list = recs(
-    $('year').value,
-    $('dist').value,
-    $('ps').value
-  );
-
-  const items =
-    list
-      .map(r => ({
-        v: r._id,
-        t: label(
-          r['Unit Name']
-            .replace(
-              /gram panchayat/i,
-              ''
-            )
-            .trim(),
-          hi(
-            r,
-            0,
-            'GP_HI'
-          )
-        )
-      }))
-      .sort(
-        (a, b) =>
-          a.t.localeCompare(b.t)
+    const district =
+      safe(
+        x.DIST_EN ||
+        x.DISTRICT_EN ||
+        x.district ||
+        x.District
       );
 
-  UI.fillSelect(
-    $('gp'),
-    [
-      {
-        v: '__ALL__',
-        t: 'All Gram Panchayats'
-      },
-      ...items
-    ],
-    'Select gram panchayat'
-  );
-
-  showInfo();
-}
+    return norm(district) === norm(S.district);
+  });
 
 
-// ============================================================
-// FIND DISPATCH RECORD
-// ============================================================
-
-function findDispatchRecord(id) {
-
-  return S.disp.find(
-    r => r._id === id
-  );
-}
-
-
-// ============================================================
-// SHOW INFORMATION
-// ============================================================
-
-function showInfo() {
-
-  const v = $('gp').value;
-
-  $('warn').innerHTML = '';
-  $('result').hidden = true;
-
-  if (!v) {
-
-    $('info').innerHTML = '';
-    return;
-  }
-
-  const list =
-    v === '__ALL__'
-      ? recs(
-          $('year').value,
-          $('dist').value,
-          $('ps').value
+  const psList = [
+    ...new Set(
+      rows
+        .map(x =>
+          safe(
+            x.PS_EN ||
+            x.PS_NAME_EN ||
+            x.PS ||
+            x.ps
+          )
         )
-      : [
-          findDispatchRecord(v)
-        ];
-
-  const r = list[0];
-
-  if (!r) {
-
-    $('info').innerHTML = '';
-    return;
-  }
-
-  $('info').innerHTML =
-    v === '__ALL__'
-      ? `<b>${list.length}</b> Gram Panchayats will be included.`
-      : `
-        <b>Dispatch:</b>
-        ${esc(r['Dispatch Name'] || '–')}
-        <br>
-
-        <b>Audit Party No:</b>
-        ${esc(r['Audit Party No'] || '–')}
-        <br>
-
-        <b>Planned:</b>
-        ${esc(r['Planned Start Date'] || '–')}
-        to
-        ${esc(r['Planned End Date'] || '–')}
-        <br>
-
-        <b>Status:</b>
-        ${esc(r['Report Status'] || '–')}
-      `;
-}
-
-
-// ============================================================
-// PICK VALUE FROM RECORD
-// ============================================================
-
-const pick = (r, names) => {
-
-  const ks = Object.keys(r);
-
-  // Exact match
-  for (const n of names) {
-
-    const k = ks.find(
-      k =>
-        k.toLowerCase() ===
-        n.toLowerCase()
-    );
-
-    if (k) return r[k];
-  }
-
-  // Partial match
-  for (const n of names) {
-
-    const k = ks.find(
-      k =>
-        k.toLowerCase()
-          .includes(
-            n.toLowerCase()
-          )
-    );
-
-    if (k) return r[k];
-  }
-
-  return '';
-};
-
-
-// ============================================================
-// DATE HELPERS
-// ============================================================
-
-const pad2 = x =>
-  String(x).padStart(2, '0');
-
-
-// ============================================================
-// LETTER PLACEHOLDER VALUES
-// ============================================================
-
-function letterValues(r, m, year) {
-
-  const dname = String(
-    pick(
-      r,
-      [
-        'Dispatch Name',
-        'Dispatch'
-      ]
-    ) ?? ''
-  ).trim();
-
-  const dm =
-    dname.match(/-(\d+)-/) ||
-    dname.match(/\b(\d+)\b/);
-
-  const d = parseDate(
-    pick(
-      r,
-      [
-        'Report Approval Date',
-        'Dispatch Date',
-        'Approval Date',
-        'Date'
-      ]
+        .filter(Boolean)
     )
-  );
+  ].sort();
 
-  const para = String(
-    pick(
-      r,
-      [
-        'Converted to Para in Nos',
-        'Converted to Para',
-        'Para'
-      ]
-    ) ?? ''
-  ).trim();
 
-  const n = parseFloat(para);
-
-  const eng =
-    String(m.GP_EN)
-      .replace(
-        /^\s*gram\s+panchayat\s+/i,
-        ''
+  select.innerHTML =
+    `<option value="">Select Panchayat Samiti</option>` +
+    psList
+      .map(p =>
+        `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`
       )
-      .trim();
-
-  return {
-
-    YEAR: year,
-
-    GP_NAME_EN:
-      m.GP_EN,
-
-    GP_NAME_ENG:
-      eng,
-
-    GP_NAME_HI:
-      `${m.GP_HI} (${eng})`,
-
-    PS_NAME_EN:
-      m.PS_EN,
-
-    PS_NAME_HI:
-      m.PS_HI,
-
-    DISTRICT_EN:
-      m.DIST_EN,
-
-    DISTRICT_HI:
-      m.DIST_HI,
-
-    DISPATCH_NO:
-      dm
-        ? dm[1]
-        : dname,
-
-    DISPATCH_NAME:
-      dname,
-
-    DATE:
-      d
-        ? `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}`
-        : '',
-
-    PARA_COUNT:
-      para
-        ? (
-            isNaN(n)
-              ? para
-              : String(
-                  Math.trunc(n) + 1
-                )
-          )
-        : '',
-
-    OFFICE_NAME:
-      m.DIST_HI,
-
-    DIVISION_NAME:
-      m.DIST_HI,
-
-    CONSTITUTION_OBJECTION:
-      '0',
-
-    SERIOUS_OBJECTION:
-      '0',
-
-    PARA_BREAKUP:
-      para
-  };
+      .join('');
 }
 
 
 // ============================================================
-// GENERATE BUTTON LABEL
+// PS CHANGE
 // ============================================================
 
-const genLabel = () => {
+if ($('ps')) {
 
-  return S.rtype === 'ams'
-    ? 'Generate AMS Report'
-    : 'Generate Cover Letter';
-};
+  $('ps').addEventListener(
+    'change',
+    () => {
 
+      S.ps = $('ps').value;
+      S.gp = 'ALL';
 
-// ============================================================
-// SAFE FILE NAME
-// ============================================================
+      buildGP();
 
-const safe = s =>
-  String(s).replace(
-    /[^\w-]+/g,
-    '_'
+      updateCount();
+    }
   );
-
-
-// ============================================================
-// MAIN GENERATE FUNCTION
-// ============================================================
-
-function generateCoveringLetter() {
-
-  return S.rtype === 'ams'
-    ? generateAms()
-    : generateLetters();
 }
 
 
 // ============================================================
-// BUSY WRAPPER
+// BUILD GP
 // ============================================================
 
-async function withBusy(work) {
+function buildGP() {
+
+  const select = $('gp');
+
+  if (!select) return;
+
+
+  const rows = S.mappings.filter(x => {
+
+    const district =
+      safe(
+        x.DIST_EN ||
+        x.DISTRICT_EN ||
+        x.district ||
+        x.District
+      );
+
+    const ps =
+      safe(
+        x.PS_EN ||
+        x.PS_NAME_EN ||
+        x.PS ||
+        x.ps
+      );
+
+    return (
+      norm(district) === norm(S.district) &&
+      norm(ps) === norm(S.ps)
+    );
+  });
+
+
+  const gps = [
+    ...new Set(
+      rows
+        .map(x =>
+          safe(
+            x.GP_EN ||
+            x.GP_NAME_EN ||
+            x.GP ||
+            x.gp
+          )
+        )
+        .filter(Boolean)
+    )
+  ].sort();
+
+
+  select.innerHTML =
+    `<option value="ALL">All Gram Panchayats</option>` +
+    gps
+      .map(g =>
+        `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`
+      )
+      .join('');
+}
+
+
+// ============================================================
+// GP CHANGE
+// ============================================================
+
+if ($('gp')) {
+
+  $('gp').addEventListener(
+    'change',
+    () => {
+
+      S.gp = $('gp').value;
+
+      updateCount();
+    }
+  );
+}
+
+
+// ============================================================
+// YEAR
+// ============================================================
+
+if ($('year')) {
+
+  $('year').addEventListener(
+    'change',
+    () => {
+
+      S.year = $('year').value;
+
+      updateCount();
+    }
+  );
+}
+
+
+// ============================================================
+// REPORT TYPE
+// ============================================================
+
+document
+  .querySelectorAll('[data-t]')
+  .forEach(btn => {
+
+    btn.addEventListener(
+      'click',
+      () => {
+
+        document
+          .querySelectorAll('[data-t]')
+          .forEach(x =>
+            x.classList.remove('active')
+          );
+
+        btn.classList.add('active');
+
+        S.rtype =
+          btn.dataset.t ||
+          'ams';
+
+        const title =
+          $('reportTitle');
+
+        if (title) {
+
+          const names = {
+            ams: 'AMS Report',
+            ybc: 'Year Book Closing',
+            intim: 'Intimation Report'
+          };
+
+          title.textContent =
+            names[S.rtype] ||
+            'Report';
+        }
+
+        updateUI();
+      }
+    );
+  });
+
+
+// ============================================================
+// UPDATE COUNT
+// ============================================================
+
+function updateCount() {
+
+  const rows = S.mappings.filter(x => {
+
+    const district =
+      safe(
+        x.DIST_EN ||
+        x.DISTRICT_EN ||
+        x.district ||
+        x.District
+      );
+
+    const ps =
+      safe(
+        x.PS_EN ||
+        x.PS_NAME_EN ||
+        x.PS ||
+        x.ps
+      );
+
+    const gp =
+      safe(
+        x.GP_EN ||
+        x.GP_NAME_EN ||
+        x.GP ||
+        x.gp
+      );
+
+    const districtOK =
+      !S.district ||
+      norm(district) === norm(S.district);
+
+    const psOK =
+      !S.ps ||
+      norm(ps) === norm(S.ps);
+
+    const gpOK =
+      S.gp === 'ALL' ||
+      !S.gp ||
+      norm(gp) === norm(S.gp);
+
+    return districtOK && psOK && gpOK;
+  });
+
+
+  S.filteredMappings = rows;
+
+
+  if ($('count')) {
+    $('count').textContent =
+      rows.length;
+  }
+
+  if ($('gpCount')) {
+    $('gpCount').textContent =
+      rows.length;
+  }
+}
+
+
+// ============================================================
+// UPDATE UI
+// ============================================================
+
+function updateUI() {
+
+  updateCount();
 
   const btn = $('genBtn');
 
-  btn.disabled = true;
-  btn.textContent =
-    'Preparing your file...';
-
-  try {
-
-    const out = await work();
-
-    if (out) {
-
-      S.last = out;
-
-      $('rname').textContent =
-        out.name;
-
-      $('result').hidden = false;
-
-      $('result').scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-
-      showToast(
-        'Generated successfully.',
-        'ok'
-      );
-    }
-
-  } catch (e) {
-
-    console.error(e);
-
-    showToast(
-      e.message === 'NO_PS'
-        ? 'No data found for the selected Panchayat Samiti.'
-        : e.properties &&
-          e.properties.errors
-          ? 'The Word template has a formatting problem in its placeholders.'
-          : UI.friendly(e),
-      'err'
-    );
-
-  } finally {
-
-    btn.disabled = false;
+  if (btn) {
     btn.textContent =
       genLabel();
   }
+}
+
+
+// ============================================================
+// GENERATE BUTTON
+// ============================================================
+
+if ($('genBtn')) {
+
+  $('genBtn').addEventListener(
+    'click',
+    () => {
+
+      withBusy(
+        generateLetters
+      );
+
+    }
+  );
+}
+
+
+// ============================================================
+// GENERATE LABEL
+// ============================================================
+
+function genLabel() {
+
+  if (S.rtype === 'ams') {
+    return 'Generate AMS Report';
+  }
+
+  if (S.rtype === 'ybc') {
+    return 'Generate Cover Letter';
+  }
+
+  if (S.rtype === 'intim') {
+    return 'Generate Intimation Report';
+  }
+
+  return 'Generate Report';
 }
 
 
@@ -775,1461 +655,881 @@ async function withBusy(work) {
 
 async function generateLetters() {
 
-  const [
-    y,
-    d,
-    p,
-    g
-  ] = [
-    'year',
-    'dist',
-    'ps',
-    'gp'
-  ].map(i => $(i).value);
+  console.log('================================');
+  console.log('START GENERATION');
+  console.log('Report Type:', S.rtype);
+  console.log('Year:', S.year);
+  console.log('District:', S.district);
+  console.log('PS:', S.ps);
+  console.log('GP:', S.gp);
+  console.log('================================');
 
-  const miss = [
-    !y && 'Year',
-    !d && 'District',
-    !p && 'Panchayat Samiti',
-    !g && 'Gram Panchayat'
-  ].filter(Boolean);
 
-  if (miss.length) {
-
-    return showToast(
-      'Please select: ' +
-      miss.join(', '),
-      'err'
+  if (!S.user) {
+    throw new Error(
+      'Please login first.'
     );
   }
 
-  const list =
-    g === '__ALL__'
-      ? recs(y, d, p)
-      : [
-          findDispatchRecord(g)
-        ].filter(Boolean);
 
-  const ok = [];
-  const bad = [];
-
-  list.forEach(r => {
-
-    const m = findMapping(r);
-
-    if (m) {
-
-      ok.push([
-        r,
-        m
-      ]);
-
-    } else {
-
-      bad.push(r);
-    }
-  });
-
-  $('warn').innerHTML =
-    bad
-      .map(
-        r =>
-          `⚠ Hindi mapping not found for:<br>${esc(r['Unit Name'])} (skipped)`
-      )
-      .join('<br>');
-
-  if (!ok.length) {
-
-    return showToast(
-      'No records with Hindi mapping found for this selection.',
-      'err'
+  if (!S.district) {
+    throw new Error(
+      'Please select District.'
     );
   }
 
-  return withBusy(
-    async () => {
 
-      const report =
-        REPORTS[S.rtype];
+  if (!S.ps) {
+    throw new Error(
+      'Please select Panchayat Samiti.'
+    );
+  }
 
-      if (!report) {
 
-        throw new Error(
-          'Report template configuration not found.'
-        );
-      }
+  const report =
+    REPORTS[S.rtype];
 
-      const blob =
-        await generateDocx(
-          ok.map(
-            ([r, m]) =>
-              letterValues(
-                r,
-                m,
-                y
-              )
-          ),
-          report.tpl
-        );
 
-      const m0 =
-        ok[0][1];
+  if (!report) {
+    throw new Error(
+      'Invalid report type: ' +
+      S.rtype
+    );
+  }
 
-      return {
 
-        blob,
-
-        name:
-          `${report.prefix}_${safe(g === '__ALL__' ? m0.PS_EN : m0.GP_EN)}_${safe(m0.DIST_EN)}_${y}.docx`
-      };
-    }
+  console.log(
+    'Template:',
+    report.tpl
   );
-}
 
 
-// ============================================================
-// AMS PANCHAYAT SAMITI CHECKLIST
-// ============================================================
-
-function renderAmsPs() {
-
-  const y =
-    $('year').value;
-
-  const set =
-    new Set();
-
-  for (const r of S.disp) {
-
-    if (y && r.Year !== y)
-      continue;
-
-    const n =
-      normPS(
-        String(
-          r['Parent Name'] || ''
-        ).trim()
-          ? r['Parent Name']
-          : r['Unit Name']
-      );
-
-    if (n)
-      set.add(n);
-  }
-
-  const list =
-    [...set].sort();
-
-  const title =
-    n =>
-      n.toLowerCase()
-        .replace(
-          /\b\w/g,
-          c =>
-            c.toUpperCase()
-        );
-
-  $('amsPs').innerHTML =
-    list.length
-
-      ? `
-        <label>
-          <input
-            type="checkbox"
-            id="amsAll"
-            checked
-          >
-          <b>
-            All Panchayat Samitis (${list.length})
-          </b>
-        </label>
-
-        ${
-          list
-            .map(
-              n =>
-                `
-                <label>
-                  <input
-                    type="checkbox"
-                    data-ps="${esc(n)}"
-                    checked
-                  >
-                  ${esc(title(n))}
-                </label>
-                `
-            )
-            .join('')
-        }
-        `
-
-      : `
-        <div class="empty">
-          Select a year with data.
-        </div>
-        `;
-
-  const boxes = () =>
-    [
-      ...$('amsPs')
-        .querySelectorAll(
-          'input[data-ps]'
-        )
-    ];
-
-  if ($('amsAll')) {
-
-    $('amsAll').onchange =
-      e =>
-        boxes()
-          .forEach(
-            b =>
-              b.checked =
-                e.target.checked
-          );
-
-    boxes().forEach(
-      b =>
-        b.onchange =
-          () =>
-            $('amsAll').checked =
-              boxes().every(
-                x => x.checked
-              )
-    );
-  }
-}
-
-
-// ============================================================
-// GENERATE AMS
-// ============================================================
-
-async function generateAms() {
-
-  const y =
-    $('year').value;
-
-  if (!y) {
-
-    return showToast(
-      'Please select: Year',
-      'err'
-    );
-  }
-
-  const picked =
-    [
-      ...$('amsPs')
-        .querySelectorAll(
-          'input[data-ps]:checked'
-        )
-    ].map(
-      i =>
-        i.dataset.ps
-    );
-
-  if (!picked.length) {
-
-    return showToast(
-      'Select at least one Panchayat Samiti.',
-      'err'
-    );
-  }
-
-  const data =
-    S.disp.filter(
-      r =>
-        r.Year === y
-    );
-
-  const need = [
-    'Audit Party No',
-    'Parent Name',
-    'Planned End Date',
-    'Report Status',
-    'Report Approval Date',
-    'Unit Name'
-  ];
-
-  const miss =
-    data.length
-      ? need.filter(
-          c =>
-            !(c in data[0])
-        )
-      : need;
-
-  if (miss.length) {
-
-    return showToast(
-      'Dispatch data is missing columns: ' +
-        miss.join(', '),
-      'err'
-    );
-  }
-
-  return withBusy(
-    async () => {
-
-      const res =
-        buildAmsReport(
-          data,
-          picked,
-          S.amsMode
-        );
-
-      $('warn').innerHTML =
-        `${res.psCount} Panchayat Samiti · ${res.totalGp} rows counted (${S.amsMode === 1 ? 'With PS' : 'Without PS'})`;
-
-      return {
-
-        blob:
-          res.blob,
-
-        name:
-          `AMS_Report_${y}.docx`
-      };
-    }
-  );
-}
-
-
-// ============================================================
-// DISPATCH DATA PAGE
-// ============================================================
-
-function renderData() {
-
-  const y =
-    $('fYear').value;
-
-  const d =
-    $('fDist').value;
-
-  const p =
-    $('fPs').value;
-
-  const st =
-    $('fStatus').value;
-
-  const q =
-    norm(
-      $('fSearch').value
-    );
-
-  const years =
-    y
-      ? [y]
-      : Object.keys(S.tree);
-
-  // Districts
-  const dists =
-    [
-      ...new Set(
-        years.flatMap(
-          k =>
-            Object.keys(
-              S.tree[k] || {}
-            )
-        )
-      )
-    ].sort();
-
-  if (
-    $('fDist').options.length - 1 !==
-    dists.length
-  ) {
-
-    UI.fillSelect(
-      $('fDist'),
-      opts(dists),
-      'All districts'
-    );
-
-    $('fDist').value = d;
-  }
-
-  // Panchayat Samitis
-  const pss =
-    [
-      ...new Set(
-        years.flatMap(
-          k =>
-            Object.keys(
-              (
-                S.tree[k] || {}
-              )[
-                $('fDist').value
-              ] || {}
-            )
-        )
-      )
-    ].sort();
-
-  if (
-    $('fPs').options.length - 1 !==
-    pss.length
-  ) {
-
-    UI.fillSelect(
-      $('fPs'),
-      opts(pss),
-      'All samitis'
-    );
-
-    $('fPs').value = p;
-  }
-
-  // Status
-  const sts =
-    [
-      ...new Set(
-        S.disp
-          .map(
-            r =>
-              r['Report Status']
-          )
-          .filter(Boolean)
-      )
-    ].sort();
-
-  if (
-    $('fStatus').options.length - 1 !==
-    sts.length
-  ) {
-
-    UI.fillSelect(
-      $('fStatus'),
-      opts(sts),
-      'All statuses'
-    );
-
-    $('fStatus').value = st;
-  }
+  // ----------------------------------------------------------
+  // FILTER MAPPINGS
+  // ----------------------------------------------------------
 
   const rows =
-    S.disp.filter(
-      r =>
-        (!y ||
-          r.Year === y) &&
-
-        (
-          !$('fDist').value ||
-          r['District Name'] ===
-            $('fDist').value
-        ) &&
-
-        (
-          !$('fPs').value ||
-          r['Parent Name'] ===
-            $('fPs').value
-        ) &&
-
-        (
-          !$('fStatus').value ||
-          r['Report Status'] ===
-            $('fStatus').value
-        ) &&
-
-        (
-          !q ||
-          norm(
-            r['Unit Name']
-          ).includes(q) ||
-
-          String(
-            r['Audit Party No'] || ''
-          )
-            .toLowerCase()
-            .includes(q) ||
-
-          String(
-            r['Dispatch Name'] || ''
-          )
-            .toLowerCase()
-            .includes(q)
-        )
-    );
-
-  if (!rows.length) {
-
-    $('dataOut').innerHTML =
-      '<div class="empty">No matching records.</div>';
-
-    return;
-  }
-
-  const shown =
-    rows.slice(0, 300);
-
-  $('dataOut').innerHTML =
-    `
-    <p>
-      ${rows.length}
-      records
-      ${
-        rows.length > 300
-          ? ' (showing first 300)'
-          : ''
-      }
-    </p>
-
-    <div class="scroll tbl">
-
-      <table>
-
-        <tr>
-          <th>GP</th>
-          <th>PS</th>
-          <th>District</th>
-          <th>Dispatch</th>
-          <th>Party No</th>
-          <th>Status</th>
-        </tr>
-
-        ${
-          shown
-            .map(
-              r =>
-                `
-                <tr>
-
-                  <td>
-                    ${esc(r['Unit Name'])}
-                  </td>
-
-                  <td>
-                    ${esc(r['Parent Name'])}
-                  </td>
-
-                  <td>
-                    ${esc(r['District Name'])}
-                  </td>
-
-                  <td>
-                    ${esc(r['Dispatch Name'])}
-                  </td>
-
-                  <td>
-                    ${esc(r['Audit Party No'])}
-                  </td>
-
-                  <td>
-                    ${esc(r['Report Status'])}
-                  </td>
-
-                </tr>
-                `
-            )
-            .join('')
-        }
-
-      </table>
-
-    </div>
-
-    <div class="cards">
-
-      ${
-        shown
-          .map(
-            r =>
-              `
-              <div class="rc">
-
-                <b>
-                  ${esc(r['Unit Name'])}
-                </b>
-
-                <br>
-
-                ${esc(r['Parent Name'])}
-                ·
-                ${esc(r['District Name'])}
-
-                <br>
-
-                Dispatch:
-                ${esc(r['Dispatch Name'])}
-
-                <br>
-
-                Party No:
-                ${esc(r['Audit Party No'])}
-
-                <br>
-
-                Status:
-                ${esc(r['Report Status'])}
-
-              </div>
-              `
-          )
-          .join('')
-      }
-
-    </div>
-    `;
-}
-
-
-// ============================================================
-// DISPATCH UPLOAD
-// ============================================================
-
-function pad(n) {
-
-  return String(n).padStart(
-    2,
-    '0'
-  );
-}
-
-
-const fmt = v =>
-
-  v instanceof Date
-
-    ? `${pad(v.getDate())}/${pad(v.getMonth() + 1)}/${v.getFullYear()}`
-
-    : typeof v === 'string'
-
-      ? v
-          .trim()
-          .replace(
-            /\s+/g,
-            ' '
-          )
-
-      : v;
-
-
-const canon = k => {
-
-  k = k.trim();
-
-  const l =
-    k.toLowerCase();
-
-  if (l === 'unit id')
-    return 'Unit ID';
-
-  if (l === 'parent unit id')
-    return 'Parent Unit ID';
-
-  return k;
-};
-
-
-// ============================================================
-// READ EXCEL
-// ============================================================
-
-async function readExcel(
-  file,
-  hdr = 'Unit ID'
-) {
-
-  const wb =
-    XLSX.read(
-      await file.arrayBuffer(),
-      {
-        cellDates: true
-      }
-    );
-
-  const names =
-    wb.SheetNames;
-
-  const pickSheet =
-    names.find(
-      n =>
-        n.toLowerCase() ===
-        'users'
-    ) ||
-
-    names.find(
-      n =>
-        (
-          XLSX.utils.sheet_to_json(
-            wb.Sheets[n],
-            {
-              header: 1
-            }
-          )[0] || []
-        ).some(
-          c =>
-            String(c)
-              .trim()
-              .toLowerCase() ===
-            hdr.toLowerCase()
-        )
-    );
-
-  if (!pickSheet)
-    throw new Error(
-      'NO_SHEET'
-    );
-
-  return XLSX.utils
-    .sheet_to_json(
-      wb.Sheets[pickSheet],
-      {
-        defval: ''
-      }
-    )
-    .map(
-      r =>
-        Object.fromEntries(
-          Object.entries(r)
-            .map(
-              ([k, v]) =>
-                [
-                  canon(k),
-                  fmt(v)
-                ]
-            )
-        )
-    );
-}
-
-
-// ============================================================
-// VALIDATE DISPATCH
-// ============================================================
-
-function validateDispatchFile(
-  rows
-) {
-
-  if (!rows.length)
-    return 'The file has no data rows.';
-
-  const miss =
-    REQUIRED.filter(
-      c =>
-        !(c in rows[0])
-    );
-
-  return miss.length
-    ? 'Missing required columns: ' +
-        miss.join(', ')
-    : '';
-}
-
-
-// ============================================================
-// DISPATCH FILE SELECT
-// ============================================================
-
-async function onFile() {
-
-  S.rows = [];
-
-  $('upBtn').disabled =
-    $('prevBtn').disabled =
-      true;
-
-  $('preview').innerHTML = '';
-
-  const f =
-    $('file').files[0];
-
-  if (!f) return;
-
-  try {
-
-    const rows =
-      await readExcel(f);
-
-    const err =
-      validateDispatchFile(rows);
-
-    if (err) {
-
-      $('fileInfo').innerHTML =
-        '⚠ ' + esc(err);
-
-      showToast(
-        err,
-        'err'
-      );
-
-      return;
-    }
-
-    S.rows = rows;
-
-    $('fileInfo').innerHTML =
-      `
-      Selected file:<br>
-
-      <b>
-        ${esc(f.name)}
-      </b>
-
-      <br>
-
-      Rows detected:
-      <b>
-        ${rows.length.toLocaleString()}
-      </b>
-
-      <br>
-
-      Columns detected:
-      <b>
-        ${Object.keys(rows[0]).length}
-      </b>
-      `;
-
-    $('prevBtn').disabled =
-      $('upBtn').disabled =
-        false;
-
-  } catch (e) {
-
-    console.error(e);
-
-    showToast(
-      'This does not look like a valid Dispatch Excel file.',
-      'err'
-    );
-
-    $('fileInfo').textContent =
-      '';
-  }
-}
-
-
-// ============================================================
-// PREVIEW DATA
-// ============================================================
-
-function previewData() {
-
-  if (!S.rows.length)
-    return;
-
-  const cols =
-    Object.keys(
-      S.rows[0]
-    ).slice(0, 8);
-
-  $('preview').innerHTML =
-    `
-    <table>
-
-      <tr>
-
-        ${
-          cols
-            .map(
-              c =>
-                `<th>${esc(c)}</th>`
-            )
-            .join('')
-        }
-
-      </tr>
-
-      ${
-        S.rows
-          .slice(0, 15)
-          .map(
-            r =>
-              `
-              <tr>
-
-                ${
-                  cols
-                    .map(
-                      c =>
-                        `<td>${esc(r[c])}</td>`
-                    )
-                    .join('')
-                }
-
-              </tr>
-              `
-          )
-          .join('')
-      }
-
-    </table>
-    `;
-}
-
-
-// ============================================================
-// UPLOAD DISPATCH
-// ============================================================
-
-async function uploadDispatchFile() {
-
-  const year =
-    $('upYear').value;
-
-  if (
-    !await UI.confirmDialog(
-      `Upload ${S.rows.length} records for ${year}? Existing records will be updated; nothing is deleted.`
-    )
-  )
-    return;
-
-  $('upBtn').disabled = true;
-
-  try {
-
-    const r =
-      await FS.uploadDispatchRows(
-        S.rows,
-        year,
-        S.ids,
-        (a, b) =>
-          $('upRes').textContent =
-            `Uploading ${a}/${b}...`
-      );
-
-    $('upRes').innerHTML =
-      `
-      <b>Upload completed</b>
-
-      <br>
-
-      New records:
-      ${r.inserted}
-
-      <br>
-
-      Updated records:
-      ${r.updated.toLocaleString()}
-
-      <br>
-
-      Skipped:
-      ${r.skipped}
-
-      <br>
-
-      Errors:
-      ${r.errors}
-      `;
-
-    showToast(
-      'Upload completed',
-      r.errors
-        ? 'err'
-        : 'ok'
-    );
-
-    await loadAll();
-
-  } catch (e) {
-
-    showToast(
-      UI.friendly(e),
-      'err'
-    );
-
-    $('upRes').textContent =
-      '';
-
-  }
-
-  $('upBtn').disabled = false;
-}
-
-
-// ============================================================
-// MAPPING UPLOAD
-// ============================================================
-
-const MAP_COLS = [
-  'GP_EN',
-  'GP_HI',
-  'PS_EN',
-  'PS_HI',
-  'DIST_EN',
-  'DIST_HI'
-];
-
-
-async function onMapFile() {
-
-  S.mapRows = [];
-
-  $('mBtn').disabled = true;
-  $('mRes').textContent = '';
-
-  const f =
-    $('mFile').files[0];
-
-  if (!f) return;
-
-  try {
-
-    const rows =
-      await readExcel(
-        f,
-        'GP_EN'
-      );
-
-    const miss =
-      rows.length
-        ? MAP_COLS.filter(
-            c =>
-              !(c in rows[0])
-          )
-        : MAP_COLS;
-
-    if (miss.length) {
-
-      $('mInfo').innerHTML =
-        '⚠ Missing columns: ' +
-        esc(
-          miss.join(', ')
+    S.mappings.filter(m => {
+
+      const district =
+        safe(
+          m.DIST_EN ||
+          m.DISTRICT_EN ||
+          m.district ||
+          m.District
         );
 
-      return showToast(
-        'Mapping file has missing columns.',
-        'err'
+      const ps =
+        safe(
+          m.PS_EN ||
+          m.PS_NAME_EN ||
+          m.PS ||
+          m.ps
+        );
+
+      const gp =
+        safe(
+          m.GP_EN ||
+          m.GP_NAME_EN ||
+          m.GP ||
+          m.gp
+        );
+
+
+      const districtOK =
+        norm(district) ===
+        norm(S.district);
+
+
+      const psOK =
+        norm(ps) ===
+        norm(S.ps);
+
+
+      const gpOK =
+        S.gp === 'ALL' ||
+        norm(gp) === norm(S.gp);
+
+
+      return (
+        districtOK &&
+        psOK &&
+        gpOK
       );
+    });
+
+
+  console.log(
+    'Filtered mapping rows:',
+    rows.length
+  );
+
+
+  if (!rows.length) {
+    throw new Error(
+      'No Gram Panchayat mapping found.'
+    );
+  }
+
+
+  // ----------------------------------------------------------
+  // CREATE VALUES
+  // ----------------------------------------------------------
+
+  const values =
+    rows.map(m => {
+
+      const gpEn =
+        safe(
+          m.GP_EN ||
+          m.GP_NAME_EN ||
+          m.GP ||
+          m.gp
+        );
+
+
+      const gpHi =
+        safe(
+          m.GP_HI ||
+          m.GP_NAME_HI ||
+          m.GP_HINDI ||
+          m.gp_hi
+        );
+
+
+      const psEn =
+        safe(
+          m.PS_EN ||
+          m.PS_NAME_EN ||
+          m.PS ||
+          m.ps
+        );
+
+
+      const psHi =
+        safe(
+          m.PS_HI ||
+          m.PS_NAME_HI ||
+          m.PS_HINDI ||
+          m.ps_hi
+        );
+
+
+      const distEn =
+        safe(
+          m.DIST_EN ||
+          m.DISTRICT_EN ||
+          m.district ||
+          m.District
+        );
+
+
+      const distHi =
+        safe(
+          m.DIST_HI ||
+          m.DISTRICT_HI ||
+          m.DISTRICT_HINDI ||
+          m.dist_hi
+        );
+
+
+      const dispatch =
+        findDispatch(
+          gpEn,
+          psEn,
+          distEn
+        );
+
+
+      const dispatchNo =
+        dispatch
+          ? getDispatchNumber(dispatch)
+          : '';
+
+
+      const dispatchName =
+        dispatch
+          ? getDispatchName(dispatch)
+          : '';
+
+
+      const para =
+        dispatch
+          ? getPara(dispatch)
+          : '';
+
+
+      const englishName =
+        gpEn;
+
+
+      const hindiName =
+        gpHi;
+
+
+      const values = {
+
+        YEAR: S.year,
+
+        GP_NAME_EN:
+          gpEn,
+
+        GP_NAME_ENG:
+          englishName,
+
+        GP_NAME_HI:
+          hindiName,
+
+        GP_NAME_HINDI:
+          hindiName,
+
+        GP_NAME:
+          hindiName,
+
+        PS_NAME_EN:
+          psEn,
+
+        PS_NAME_HI:
+          psHi,
+
+        PS_NAME:
+          psHi,
+
+        DISTRICT_EN:
+          distEn,
+
+        DISTRICT_HI:
+          distHi,
+
+        DISTRICT:
+          distHi,
+
+        DISPATCH_NO:
+          dispatchNo,
+
+        DISPATCH_NAME:
+          dispatchName,
+
+        DATE:
+          today(),
+
+        PARA_COUNT:
+          para,
+
+        OFFICE_NAME:
+          distHi,
+
+        DIVISION_NAME:
+          distHi,
+
+        CONSTITUTION_OBJECTION:
+          '0',
+
+        SERIOUS_OBJECTION:
+          '0',
+
+        PARA_BREAKUP:
+          para
+      };
+
+
+      return values;
+    });
+
+
+  console.log(
+    'Records to generate:',
+    values.length
+  );
+
+
+  console.log(
+    'FIRST RECORD:',
+    values[0]
+  );
+
+
+  // ----------------------------------------------------------
+  // GENERATE DOCX
+  // ----------------------------------------------------------
+
+  console.log(
+    'Calling generateDocx...'
+  );
+
+
+  const blob =
+    await generateDocx(
+      values,
+      report.tpl
+    );
+
+
+  console.log(
+    'generateDocx returned:',
+    blob
+  );
+
+
+  if (!blob) {
+    throw new Error(
+      'Document generator returned empty file.'
+    );
+  }
+
+
+  const filename =
+    `${report.prefix}_${slug(S.district)}_${slug(S.ps)}_${S.year}.docx`;
+
+
+  console.log(
+    'Final filename:',
+    filename
+  );
+
+
+  return {
+    blob,
+    name: filename
+  };
+}
+
+
+// ============================================================
+// DISPATCH FINDER
+// ============================================================
+
+function findDispatch(
+  gp,
+  ps,
+  district
+) {
+
+  const gpN =
+    norm(gp);
+
+  const psN =
+    norm(ps);
+
+  const distN =
+    norm(district);
+
+
+  // First try exact GP
+  let found =
+    S.dispatches.find(d => {
+
+      const dgp =
+        norm(
+          d.GP_NAME_EN ||
+          d.GP_EN ||
+          d.GP ||
+          d.gp ||
+          d['GP Name'] ||
+          d['Gram Panchayat']
+        );
+
+
+      return dgp === gpN;
+    });
+
+
+  if (found) {
+    return found;
+  }
+
+
+  // Try GP + PS
+  found =
+    S.dispatches.find(d => {
+
+      const dgp =
+        norm(
+          d.GP_NAME_EN ||
+          d.GP_EN ||
+          d.GP ||
+          d.gp ||
+          d['GP Name'] ||
+          d['Gram Panchayat']
+        );
+
+
+      const dps =
+        norm(
+          d.PS_NAME_EN ||
+          d.PS_EN ||
+          d.PS ||
+          d.ps ||
+          d['PS Name'] ||
+          d['Panchayat Samiti']
+        );
+
+
+      return (
+        dgp === gpN &&
+        (!dps || dps === psN)
+      );
+    });
+
+
+  if (found) {
+    return found;
+  }
+
+
+  // Try GP + district
+  found =
+    S.dispatches.find(d => {
+
+      const dgp =
+        norm(
+          d.GP_NAME_EN ||
+          d.GP_EN ||
+          d.GP ||
+          d.gp ||
+          d['GP Name'] ||
+          d['Gram Panchayat']
+        );
+
+
+      const ddist =
+        norm(
+          d.DIST_EN ||
+          d.DISTRICT_EN ||
+          d.DISTRICT ||
+          d.district ||
+          d['District']
+        );
+
+
+      return (
+        dgp === gpN &&
+        (!ddist || ddist === distN)
+      );
+    });
+
+
+  return found || null;
+}
+
+
+// ============================================================
+// DISPATCH NUMBER
+// ============================================================
+
+function getDispatchNumber(d) {
+
+  const candidates = [
+
+    d.DISPATCH_NO,
+    d.Dispatch_No,
+    d.DISPATCH,
+    d.Dispatch,
+    d['Dispatch No'],
+    d['Dispatch Number'],
+    d['Dispatch Sankhya'],
+    d['dispatch no'],
+    d['dispatch number'],
+    d['dispatch sankhya'],
+    d.Sankhya,
+    d.sankhya
+
+  ];
+
+
+  for (const x of candidates) {
+
+    if (safe(x)) {
+      return safe(x);
     }
 
-    S.mapRows =
-      rows;
-
-    $('mInfo').innerHTML =
-      `
-      Selected file:<br>
-
-      <b>
-        ${esc(f.name)}
-      </b>
-
-      <br>
-
-      Rows detected:
-      <b>
-        ${rows.length.toLocaleString()}
-      </b>
-      `;
-
-    $('mBtn').disabled =
-      false;
-
-  } catch (e) {
-
-    console.error(e);
-
-    $('mInfo').textContent =
-      '';
-
-    showToast(
-      'This does not look like a valid Mapping Excel file (sheet needs GP_EN column).',
-      'err'
-    );
-  }
-}
-
-
-// ============================================================
-// UPLOAD MAPPING
-// ============================================================
-
-async function uploadMappingFile() {
-
-  if (
-    !await UI.confirmDialog(
-      `Upload ${S.mapRows.length} mapping rows? Existing rows will be updated; nothing is deleted.`
-    )
-  )
-    return;
-
-  $('mBtn').disabled = true;
-
-  try {
-
-    const r =
-      await FS.uploadMappingRows(
-        S.mapRows,
-        new Set(
-          S.maps.map(
-            m => m._id
-          )
-        ),
-        (a, b) =>
-          $('mRes').textContent =
-            `Uploading ${a}/${b}...`
-      );
-
-    $('mRes').innerHTML =
-      `
-      <b>Upload completed</b>
-
-      <br>
-
-      New records:
-      ${r.inserted}
-
-      <br>
-
-      Updated records:
-      ${r.updated.toLocaleString()}
-
-      <br>
-
-      Skipped:
-      ${r.skipped}
-
-      <br>
-
-      Errors:
-      ${r.errors}
-      `;
-
-    showToast(
-      'Mapping upload completed',
-      r.errors
-        ? 'err'
-        : 'ok'
-    );
-
-    await loadAll();
-
-  } catch (e) {
-
-    console.error(e);
-
-    showToast(
-      UI.friendly(e),
-      'err'
-    );
-
-    $('mRes').textContent =
-      '';
-
   }
 
-  $('mBtn').disabled = false;
-}
 
+  // fallback: scan object keys
+  for (const key of Object.keys(d || {})) {
 
-// ============================================================
-// WIRING
-// ============================================================
+    const k =
+      key
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
 
-$('mFile').onchange =
-  onMapFile;
-
-$('mBtn').onclick =
-  uploadMappingFile;
-
-UI.setupNav(
-  v => {
-
-    if (v === 'data')
-      renderData();
-  }
-);
-
-document
-  .querySelector('.view')
-  .classList
-  .add('active');
-
-
-$('year').onchange =
-  () => {
-
-    populateDistricts();
-    renderAmsPs();
-
-  };
-
-
-$('dist').onchange =
-  populatePS;
-
-$('ps').onchange =
-  populateGPs;
-
-$('gp').onchange =
-  showInfo;
-
-$('genBtn').onclick =
-  generateCoveringLetter;
-
-
-[
-  'fYear',
-  'fDist',
-  'fPs',
-  'fStatus'
-].forEach(
-  i =>
-    $(i).onchange =
-      renderData
-);
-
-$('fSearch').oninput =
-  renderData;
-
-$('file').onchange =
-  onFile;
-
-$('prevBtn').onclick =
-  previewData;
-
-$('upBtn').onclick =
-  uploadDispatchFile;
-
-$('reloadBtn').onclick =
-  loadAll;
-
-
-// ============================================================
-// WHATSAPP SHARE
-// ============================================================
-
-async function shareWhatsApp() {
-
-  const {
-    blob,
-    name
-  } = S.last;
-
-  const file =
-    new File(
-      [blob],
-      name,
-      {
-        type: blob.type
-      }
-    );
-
-  try {
 
     if (
-      navigator.canShare &&
-      navigator.canShare({
-        files: [file]
-      })
+      k.includes('dispatch') ||
+      k.includes('sankhya')
     ) {
 
-      await navigator.share({
-        files: [file],
-        text: name
-      });
-
-      return;
+      if (safe(d[key])) {
+        return safe(d[key]);
+      }
     }
-
-  } catch (e) {
-
-    if (
-      e.name ===
-      'AbortError'
-    )
-      return;
   }
 
-  download(
-    blob,
-    name
-  );
 
-  window.open(
-    'https://wa.me/?text=' +
-      encodeURIComponent(
-        'Please find the attached letter: ' +
-        name
-      ),
-    '_blank'
-  );
-
-  showToast(
-    'File downloaded. Attach it in WhatsApp.'
-  );
+  return '';
 }
 
 
 // ============================================================
-// REPORT TYPE BUTTONS
+// DISPATCH NAME
 // ============================================================
 
-$('rtypes').onclick =
-  e => {
+function getDispatchName(d) {
 
-    const b =
-      e.target.closest(
-        'button'
-      );
+  const candidates = [
 
-    if (!b) return;
+    d.DISPATCH_NAME,
+    d.Dispatch_Name,
+    d.NAME,
+    d.Name,
+    d['Dispatch Name'],
+    d['Dispatch File'],
+    d['Dispatch'],
+    d.File,
+    d.file
 
-    S.rtype =
-      b.dataset.t;
+  ];
 
-    [
-      ...$('rtypes').children
-    ].forEach(
-      c =>
-        c.classList.toggle(
-          'on',
-          c === b
-        )
+
+  for (const x of candidates) {
+
+    if (safe(x)) {
+      return safe(x);
+    }
+
+  }
+
+
+  return '';
+}
+
+
+// ============================================================
+// PARA
+// ============================================================
+
+function getPara(d) {
+
+  const candidates = [
+
+    d.PARA_COUNT,
+    d.PARA,
+    d.Para,
+    d['Para Sankhya'],
+    d['Para Count'],
+    d['Para'],
+    d['para sankhya'],
+    d['para count']
+
+  ];
+
+
+  for (const x of candidates) {
+
+    if (safe(x)) {
+      return safe(x);
+    }
+
+  }
+
+
+  // Search dynamically
+  for (const key of Object.keys(d || {})) {
+
+    const k =
+      key
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
+
+
+    if (
+      k.includes('para') ||
+      k.includes('sankhya')
+    ) {
+
+      if (safe(d[key])) {
+        return safe(d[key]);
+      }
+    }
+  }
+
+
+  return '';
+}
+
+
+// ============================================================
+// BUSY / ERROR HANDLER
+// ============================================================
+
+async function withBusy(work) {
+
+  const btn =
+    $('genBtn');
+
+
+  if (btn) {
+
+    btn.disabled = true;
+
+    btn.textContent =
+      'Preparing your file...';
+  }
+
+
+  try {
+
+    console.log(
+      '========== GENERATE START =========='
     );
 
-    $('result').hidden =
-      true;
 
-    $('warn').innerHTML =
-      '';
+    const out =
+      await work();
 
-    $('letterSel').hidden =
-      S.rtype === 'ams';
 
-    $('amsBox').hidden =
-      S.rtype !== 'ams';
+    console.log(
+      'GENERATION OUTPUT:',
+      out
+    );
 
-    $('genBtn').textContent =
-      genLabel();
-  };
+
+    if (out) {
+
+      S.last =
+        out;
+
+
+      if ($('rname')) {
+
+        $('rname').textContent =
+          out.name;
+      }
+
+
+      if ($('result')) {
+
+        $('result').hidden =
+          false;
+
+        $('result').scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+
+
+      showToast(
+        'Generated successfully.',
+        'ok'
+      );
+    }
+
+
+  } catch (e) {
+
+    // VERY IMPORTANT:
+    // Do NOT hide the real error.
+
+    console.error(
+      '========== GENERATE ERROR =========='
+    );
+
+    console.error(
+      e
+    );
+
+    console.error(
+      'Message:',
+      e?.message
+    );
+
+    console.error(
+      'Code:',
+      e?.code
+    );
+
+    console.error(
+      'Properties:',
+      e?.properties
+    );
+
+    console.error(
+      'Stack:',
+      e?.stack
+    );
+
+    console.error(
+      '===================================='
+    );
+
+
+    let msg = 'Unknown error';
+
+
+    // Docxtemplater errors
+    if (
+      e?.properties?.errors?.length
+    ) {
+
+      msg =
+        e.properties.errors
+          .map(x =>
+            x.properties?.explanation ||
+            x.message ||
+            String(x)
+          )
+          .join(' | ');
+    }
+
+
+    // Normal JS error
+    else if (e?.message) {
+
+      msg =
+        e.message;
+    }
+
+
+    else if (e?.code) {
+
+      msg =
+        e.code;
+    }
+
+
+    else {
+
+      msg =
+        String(e);
+    }
+
+
+    showToast(
+      'Generate Error: ' + msg,
+      'err'
+    );
+
+  } finally {
+
+    if (btn) {
+
+      btn.disabled = false;
+
+      btn.textContent =
+        genLabel();
+    }
+  }
+}
 
 
 // ============================================================
 // DOWNLOAD
 // ============================================================
 
-$('dlBtn').onclick =
-  () =>
-    S.last &&
-    download(
-      S.last.blob,
-      S.last.name
-    );
+if ($('downloadBtn')) {
+
+  $('downloadBtn').addEventListener(
+    'click',
+    () => {
+
+      if (!S.last?.blob) {
+
+        showError(
+          'No generated file available.'
+        );
+
+        return;
+      }
 
 
-// ============================================================
-// WHATSAPP BUTTON
-// ============================================================
-
-$('waBtn').onclick =
-  () =>
-    S.last &&
-    shareWhatsApp();
+      const url =
+        URL.createObjectURL(
+          S.last.blob
+        );
 
 
-// ============================================================
-// AMS MODE
-// ============================================================
+      const a =
+        document.createElement('a');
 
-$('amsMode').onclick =
-  e => {
 
-    const b =
-      e.target.closest(
-        'button'
+      a.href =
+        url;
+
+      a.download =
+        S.last.name;
+
+
+      document.body.appendChild(a);
+
+      a.click();
+
+      a.remove();
+
+
+      setTimeout(
+        () => URL.revokeObjectURL(url),
+        1000
       );
-
-    if (!b) return;
-
-    S.amsMode =
-      +b.dataset.m;
-
-    [
-      ...$('amsMode').children
-    ].forEach(
-      c =>
-        c.classList.toggle(
-          'on',
-          c === b
-        )
-    );
-  };
+    }
+  );
+}
 
 
 // ============================================================
-// DEFAULT REPORT TYPE
+// TOAST
 // ============================================================
 
-$('letterSel').hidden =
-  true;
+function showToast(
+  message,
+  type = 'ok'
+) {
 
-$('amsBox').hidden =
-  false;
+  if (
+    UI &&
+    typeof UI.showToast === 'function'
+  ) {
 
-$('genBtn').textContent =
-  genLabel();
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-$('logoutBtn').onclick =
-  () => {
-
-    FS.logout();
-
-    S.disp = [];
-    S.maps = [];
-  };
-
-
-// ============================================================
-// GOOGLE USER
-// ============================================================
-
-FS.onUser(
-  u => {
-
-    document.body.classList.toggle(
-      'authed',
-      !!u
+    UI.showToast(
+      message,
+      type
     );
 
-    if (!u)
-      return;
-
-    S.admin =
-      ADMIN_EMAILS.includes(
-        (u.email || '')
-          .toLowerCase()
-      );
-
-    const nm =
-      u.displayName ||
-      u.email ||
-      'User';
-
-    $('hello').textContent =
-      'नमस्ते, ' +
-      nm.split(' ')[0] +
-      ' 👋';
-
-    $('dname').textContent =
-      nm;
-
-    $('demail').textContent =
-      u.email || '';
-
-    $('avatar').src =
-      $('davatar').src =
-        u.photoURL || '';
-
-    $('navUpload').hidden =
-      $('tileUpload').hidden =
-      $('upBox').hidden =
-        !S.admin;
-
-    $('noAdmin').hidden =
-      S.admin;
-
-    // Data is read only after sign-in
-    loadAll();
+    return;
   }
+
+
+  alert(message);
+}
+
+
+// ============================================================
+// HTML ESCAPE
+// ============================================================
+
+function escapeHtml(value) {
+
+  return safe(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+
+// ============================================================
+// INITIAL UI
+// ============================================================
+
+updateUI();
+
+console.log(
+  'Jamidara application loaded.'
+);
+
+console.log(
+  'Report configuration:',
+  REPORTS
 );

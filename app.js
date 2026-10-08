@@ -1,20 +1,22 @@
-import { db, auth } from './js/firebase-config.js';
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+// ============================================================
+// JAMIDARA - COVER LETTER GENERATOR
+// ============================================================
 
 import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+  loadMappings,
+  loadDispatchData,
+  googleLogin,
+  logout,
+  onUser,
+  uploadDispatchRows,
+  uploadMappingRows
+} from './js/firestore.js';
 
 import * as UI from './js/ui.js';
-import { generateDocx } from './js/docx-generator.js';
+
+import {
+  generateDocx
+} from './js/docx-generator.js';
 
 
 // ============================================================
@@ -26,6 +28,7 @@ const ADMIN_EMAILS = [
 ];
 
 const REPORTS = {
+
   ams: {
     tpl: 'ams-report.docx',
     prefix: 'AMS_Report'
@@ -40,6 +43,7 @@ const REPORTS = {
     tpl: 'intimation-report.docx',
     prefix: 'Intimation_Report'
   }
+
 };
 
 
@@ -48,56 +52,123 @@ const REPORTS = {
 // ============================================================
 
 const S = {
+
   user: null,
+
   mappings: [],
+
   dispatches: [],
-  filteredMappings: [],
-  rtype: 'ams',
+
+  rtype: 'ybc',
+
   year: '2025-26',
+
   district: '',
+
   ps: '',
+
   gp: 'ALL',
-  last: null
+
+  last: null,
+
+  amsMode: '1',
+
+  selectedAmsPs: []
+
 };
 
 
 // ============================================================
-// SHORT HELPERS
+// HELPERS
 // ============================================================
 
-const $ = id => document.getElementById(id);
+const $ = id =>
+  document.getElementById(id);
+
 
 function safe(v) {
-  return v == null ? '' : String(v).trim();
+
+  return v == null
+    ? ''
+    : String(v).trim();
+
 }
+
 
 function norm(v) {
+
   return safe(v)
-    .toLowerCase()
+    .replace(
+      /gram\s+panchayat|panchayat\s+samiti/gi,
+      ''
+    )
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    .toLowerCase();
+
 }
 
+
 function slug(v) {
+
   return safe(v)
     .replace(/[^\w\u0900-\u097F-]+/g, '_')
     .replace(/_+/g, '_')
     .replace(/^_+|_+$/g, '');
+
 }
+
 
 function today() {
+
   const d = new Date();
 
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yy = d.getFullYear();
+  const dd =
+    String(d.getDate()).padStart(2, '0');
 
-  return `${dd}-${mm}-${yy}`;
+  const mm =
+    String(d.getMonth() + 1).padStart(2, '0');
+
+  const yyyy =
+    d.getFullYear();
+
+  return `${dd}-${mm}-${yyyy}`;
+
 }
 
-function showError(msg) {
-  console.error(msg);
-  UI.showToast(msg, 'err');
+
+function isAdmin() {
+
+  return !!(
+    S.user &&
+    ADMIN_EMAILS
+      .map(x => x.toLowerCase())
+      .includes(
+        safe(S.user.email).toLowerCase()
+      )
+  );
+
+}
+
+
+function toast(
+  msg,
+  type = ''
+) {
+
+  try {
+
+    UI.showToast(
+      msg,
+      type
+    );
+
+  } catch {
+
+    alert(msg);
+
+  }
+
 }
 
 
@@ -105,74 +176,169 @@ function showError(msg) {
 // AUTH
 // ============================================================
 
-onAuthStateChanged(auth, async user => {
+onUser(async user => {
 
-  S.user = user || null;
+  console.log(
+    'AUTH STATE:',
+    user
+  );
+
+  S.user =
+    user || null;
+
 
   if (!user) {
-    console.log('No logged-in user');
 
-    if ($('login')) {
-      $('login').hidden = false;
-    }
-
-    if ($('app')) {
-      $('app').hidden = true;
-    }
+    showLogin();
 
     return;
+
   }
 
-  console.log('Logged in:', user.email);
 
-  if ($('login')) {
-    $('login').hidden = true;
+  showApp();
+
+
+  setUserUI(user);
+
+
+  try {
+
+    await loadData();
+
+  } catch (e) {
+
+    console.error(
+      'Initial data load failed:',
+      e
+    );
+
+    toast(
+      'Data load error: ' +
+      getRealError(e),
+      'err'
+    );
+
   }
 
-  if ($('app')) {
-    $('app').hidden = false;
-  }
-
-  await loadData();
 });
 
 
 // ============================================================
-// LOGIN
+// LOGIN SCREEN
 // ============================================================
 
-if ($('loginForm')) {
+function showLogin() {
 
-  $('loginForm').addEventListener('submit', async e => {
+  const login =
+    $('login');
 
-    e.preventDefault();
+  if (login) {
+    login.style.display =
+      'flex';
+  }
 
-    const email = safe($('email')?.value);
-    const password = $('password')?.value || '';
+  document
+    .querySelectorAll(
+      'header.top, nav#drawer, main'
+    )
+    .forEach(el => {
 
-    if (!email || !password) {
-      showError('Email और password डालें.');
-      return;
+      el.style.display =
+        'none';
+
+    });
+
+}
+
+
+function showApp() {
+
+  const login =
+    $('login');
+
+  if (login) {
+
+    login.style.display =
+      'none';
+
+  }
+
+  document
+    .querySelectorAll(
+      'header.top, nav#drawer, main'
+    )
+    .forEach(el => {
+
+      el.style.display =
+        '';
+
+    });
+
+}
+
+
+// ============================================================
+// GOOGLE LOGIN
+// ============================================================
+
+const googleButton =
+  $('gBtn');
+
+
+if (googleButton) {
+
+  googleButton.addEventListener(
+    'click',
+    async () => {
+
+      const err =
+        $('lerr');
+
+      if (err) {
+        err.textContent = '';
+      }
+
+
+      googleButton.disabled =
+        true;
+
+      googleButton.style.opacity =
+        '0.7';
+
+
+      try {
+
+        await googleLogin();
+
+      } catch (e) {
+
+        console.error(
+          'GOOGLE LOGIN ERROR:',
+          e
+        );
+
+
+        if (err) {
+
+          err.textContent =
+            getRealError(e);
+
+        }
+
+      } finally {
+
+        googleButton.disabled =
+          false;
+
+        googleButton.style.opacity =
+          '';
+
+      }
+
     }
+  );
 
-    try {
-
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-    } catch (e) {
-
-      console.error('LOGIN ERROR:', e);
-
-      showError(
-        e?.message ||
-        'Login failed.'
-      );
-    }
-  });
 }
 
 
@@ -180,111 +346,483 @@ if ($('loginForm')) {
 // LOGOUT
 // ============================================================
 
-if ($('logoutBtn')) {
+const logoutButton =
+  $('logoutBtn');
 
-  $('logoutBtn').addEventListener('click', async () => {
 
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.error(e);
+if (logoutButton) {
+
+  logoutButton.addEventListener(
+    'click',
+    async () => {
+
+      try {
+
+        await logout();
+
+      } catch (e) {
+
+        console.error(
+          'LOGOUT ERROR:',
+          e
+        );
+
+      }
+
     }
+  );
 
-  });
 }
 
 
 // ============================================================
-// LOAD FIRESTORE DATA
+// USER UI
+// ============================================================
+
+function setUserUI(user) {
+
+  const name =
+    safe(
+      user.displayName ||
+      user.email ||
+      'User'
+    );
+
+  const email =
+    safe(
+      user.email
+    );
+
+
+  if ($('dname')) {
+
+    $('dname').textContent =
+      name;
+
+  }
+
+
+  if ($('demail')) {
+
+    $('demail').textContent =
+      email;
+
+  }
+
+
+  if ($('hello')) {
+
+    $('hello').textContent =
+      `नमस्ते ${name} 👋`;
+
+  }
+
+
+  const avatar =
+    user.photoURL || '';
+
+
+  if ($('avatar')) {
+
+    $('avatar').src =
+      avatar;
+
+  }
+
+
+  if ($('davatar')) {
+
+    $('davatar').src =
+      avatar;
+
+  }
+
+
+  const admin =
+    isAdmin();
+
+
+  const uploadNav =
+    $('navUpload');
+
+
+  const uploadTile =
+    $('tileUpload');
+
+
+  if (uploadNav) {
+
+    uploadNav.style.display =
+      admin
+        ? ''
+        : 'none';
+
+  }
+
+
+  if (uploadTile) {
+
+    uploadTile.style.display =
+      admin
+        ? ''
+        : 'none';
+
+  }
+
+
+  const noAdmin =
+    $('noAdmin');
+
+
+  const upBox =
+    $('upBox');
+
+
+  if (noAdmin) {
+
+    noAdmin.style.display =
+      admin
+        ? 'none'
+        : '';
+
+  }
+
+
+  if (upBox) {
+
+    upBox.hidden =
+      !admin;
+
+  }
+
+}
+
+
+// ============================================================
+// LOAD DATA
 // ============================================================
 
 async function loadData() {
 
-  try {
-
-    console.log('Loading mappings...');
-
-    const mappingSnap = await getDocs(
-      collection(db, 'mappings')
-    );
-
-    S.mappings = mappingSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    }));
-
-    console.log(
-      'Mappings loaded:',
-      S.mappings.length
-    );
+  console.log(
+    'Loading Firestore mappings...'
+  );
 
 
-    console.log('Loading dispatches...');
-
-    const dispatchSnap = await getDocs(
-      collection(db, 'dispatches')
-    );
-
-    S.dispatches = dispatchSnap.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    }));
-
-    console.log(
-      'Dispatches loaded:',
-      S.dispatches.length
-    );
+  const mappings =
+    await loadMappings();
 
 
-    buildDistricts();
+  console.log(
+    'Mappings:',
+    mappings.length
+  );
 
-    updateUI();
 
-  } catch (e) {
+  const dispatches =
+    await loadDispatchData();
 
-    console.error('FIRESTORE LOAD ERROR:', e);
 
-    UI.showToast(
-      e?.message ||
-      'Firestore data load failed.',
-      'err'
-    );
-  }
+  console.log(
+    'Dispatches:',
+    dispatches.length
+  );
+
+
+  S.mappings =
+    mappings;
+
+
+  S.dispatches =
+    dispatches;
+
+
+  updateStats();
+
+
+  buildYears();
+
+
+  buildDistricts();
+
+
+  buildFilterControls();
+
+
+  updateGenerateControls();
+
+
+  updateInfo();
+
 }
 
 
 // ============================================================
-// DISTRICT
+// STATS
 // ============================================================
+
+function updateStats() {
+
+  if ($('stD')) {
+
+    $('stD').textContent =
+      S.dispatches.length;
+
+  }
+
+
+  if ($('stM')) {
+
+    $('stM').textContent =
+      S.mappings.length;
+
+  }
+
+
+  const years =
+    new Set();
+
+
+  S.dispatches.forEach(d => {
+
+    const y =
+      safe(
+        d.Year ||
+        d.YEAR ||
+        d.year
+      );
+
+    if (y) {
+      years.add(y);
+    }
+
+  });
+
+
+  S.mappings.forEach(d => {
+
+    const y =
+      safe(
+        d.Year ||
+        d.YEAR ||
+        d.year
+      );
+
+    if (y) {
+      years.add(y);
+    }
+
+  });
+
+
+  if ($('stY')) {
+
+    $('stY').textContent =
+      years.size || '1';
+
+  }
+
+}
+
+
+// ============================================================
+// YEAR LIST
+// ============================================================
+
+function buildYears() {
+
+  const years =
+    new Set([
+      '2025-26',
+      '2026-27'
+    ]);
+
+
+  S.dispatches.forEach(d => {
+
+    const y =
+      safe(
+        d.Year ||
+        d.YEAR ||
+        d.year
+      );
+
+    if (y) {
+      years.add(y);
+    }
+
+  });
+
+
+  const list =
+    [...years].sort();
+
+
+  if ($('year')) {
+
+    $('year').innerHTML =
+      list
+        .map(y =>
+          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
+        )
+        .join('');
+
+
+    if (
+      list.includes(S.year)
+    ) {
+
+      $('year').value =
+        S.year;
+
+    } else {
+
+      S.year =
+        list[0] || '2025-26';
+
+      $('year').value =
+        S.year;
+
+    }
+
+  }
+
+
+  if ($('upYear')) {
+
+    $('upYear').innerHTML =
+      list
+        .map(y =>
+          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
+        )
+        .join('');
+
+  }
+
+
+  if ($('fYear')) {
+
+    $('fYear').innerHTML =
+      `<option value="">All Years</option>` +
+      list
+        .map(y =>
+          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
+        )
+        .join('');
+
+  }
+
+}
+
+
+// ============================================================
+// DISTRICT LIST
+// ============================================================
+
+function getDistrict(m) {
+
+  return safe(
+    m.DIST_EN ||
+    m.DISTRICT_EN ||
+    m.District ||
+    m.district
+  );
+
+}
+
+
+function getDistrictHi(m) {
+
+  return safe(
+    m.DIST_HI ||
+    m.DISTRICT_HI ||
+    m.District_HI ||
+    m.district_hi
+  );
+
+}
+
+
+function getPS(m) {
+
+  return safe(
+    m.PS_EN ||
+    m.PS_NAME_EN ||
+    m.PS ||
+    m.ps
+  );
+
+}
+
+
+function getPSHi(m) {
+
+  return safe(
+    m.PS_HI ||
+    m.PS_NAME_HI ||
+    m.PS_HINDI ||
+    m.ps_hi
+  );
+
+}
+
+
+function getGP(m) {
+
+  return safe(
+    m.GP_EN ||
+    m.GP_NAME_EN ||
+    m.GP ||
+    m.gp
+  );
+
+}
+
+
+function getGPHI(m) {
+
+  return safe(
+    m.GP_HI ||
+    m.GP_NAME_HI ||
+    m.GP_HINDI ||
+    m.gp_hi
+  );
+
+}
+
 
 function buildDistricts() {
 
-  const districts = [
-    ...new Set(
+  const list =
+    [...new Set(
       S.mappings
-        .map(x =>
-          safe(
-            x.DIST_EN ||
-            x.DISTRICT_EN ||
-            x.district ||
-            x.District
-          )
-        )
+        .map(getDistrict)
         .filter(Boolean)
-    )
-  ].sort();
+    )].sort();
 
-  const select = $('district');
+
+  const select =
+    $('dist');
+
 
   if (!select) return;
 
+
   select.innerHTML =
     `<option value="">Select District</option>` +
-    districts
+    list
       .map(d =>
-        `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`
+        `<option value="${UI.esc(d)}">${UI.esc(d)}</option>`
       )
       .join('');
+
+
+  if (S.district) {
+
+    select.value =
+      S.district;
+
+  }
 
 }
 
@@ -293,72 +831,74 @@ function buildDistricts() {
 // DISTRICT CHANGE
 // ============================================================
 
-if ($('district')) {
+if ($('dist')) {
 
-  $('district').addEventListener(
+  $('dist').addEventListener(
     'change',
     () => {
 
-      S.district = $('district').value;
-      S.ps = '';
-      S.gp = 'ALL';
+      S.district =
+        $('dist').value;
+
+      S.ps =
+        '';
+
+      S.gp =
+        'ALL';
 
       buildPS();
+
       buildGP();
 
-      updateCount();
+      updateInfo();
+
     }
   );
+
 }
 
 
 // ============================================================
-// BUILD PS
+// PS LIST
 // ============================================================
 
 function buildPS() {
 
-  const select = $('ps');
+  const select =
+    $('ps');
+
 
   if (!select) return;
 
-  const rows = S.mappings.filter(x => {
 
-    const district =
-      safe(
-        x.DIST_EN ||
-        x.DISTRICT_EN ||
-        x.district ||
-        x.District
-      );
-
-    return norm(district) === norm(S.district);
-  });
-
-
-  const psList = [
-    ...new Set(
-      rows
-        .map(x =>
-          safe(
-            x.PS_EN ||
-            x.PS_NAME_EN ||
-            x.PS ||
-            x.ps
-          )
+  const list =
+    [...new Set(
+      S.mappings
+        .filter(m =>
+          norm(getDistrict(m)) ===
+          norm(S.district)
         )
+        .map(getPS)
         .filter(Boolean)
-    )
-  ].sort();
+    )].sort();
 
 
   select.innerHTML =
     `<option value="">Select Panchayat Samiti</option>` +
-    psList
+    list
       .map(p =>
-        `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`
+        `<option value="${UI.esc(p)}">${UI.esc(p)}</option>`
       )
       .join('');
+
+
+  if (S.ps) {
+
+    select.value =
+      S.ps;
+
+  }
+
 }
 
 
@@ -372,76 +912,61 @@ if ($('ps')) {
     'change',
     () => {
 
-      S.ps = $('ps').value;
-      S.gp = 'ALL';
+      S.ps =
+        $('ps').value;
+
+      S.gp =
+        'ALL';
 
       buildGP();
 
-      updateCount();
+      updateInfo();
+
     }
   );
+
 }
 
 
 // ============================================================
-// BUILD GP
+// GP LIST
 // ============================================================
 
 function buildGP() {
 
-  const select = $('gp');
+  const select =
+    $('gp');
+
 
   if (!select) return;
 
 
-  const rows = S.mappings.filter(x => {
-
-    const district =
-      safe(
-        x.DIST_EN ||
-        x.DISTRICT_EN ||
-        x.district ||
-        x.District
-      );
-
-    const ps =
-      safe(
-        x.PS_EN ||
-        x.PS_NAME_EN ||
-        x.PS ||
-        x.ps
-      );
-
-    return (
-      norm(district) === norm(S.district) &&
-      norm(ps) === norm(S.ps)
-    );
-  });
-
-
-  const gps = [
-    ...new Set(
-      rows
-        .map(x =>
-          safe(
-            x.GP_EN ||
-            x.GP_NAME_EN ||
-            x.GP ||
-            x.gp
-          )
+  const list =
+    [...new Set(
+      S.mappings
+        .filter(m =>
+          norm(getDistrict(m)) ===
+          norm(S.district) &&
+          norm(getPS(m)) ===
+          norm(S.ps)
         )
+        .map(getGP)
         .filter(Boolean)
-    )
-  ].sort();
+    )].sort();
 
 
   select.innerHTML =
     `<option value="ALL">All Gram Panchayats</option>` +
-    gps
+    list
       .map(g =>
-        `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`
+        `<option value="${UI.esc(g)}">${UI.esc(g)}</option>`
       )
       .join('');
+
+
+  select.value =
+    S.gp || 'ALL';
+
 }
 
 
@@ -455,16 +980,19 @@ if ($('gp')) {
     'change',
     () => {
 
-      S.gp = $('gp').value;
+      S.gp =
+        $('gp').value;
 
-      updateCount();
+      updateInfo();
+
     }
   );
+
 }
 
 
 // ============================================================
-// YEAR
+// YEAR CHANGE
 // ============================================================
 
 if ($('year')) {
@@ -473,11 +1001,14 @@ if ($('year')) {
     'change',
     () => {
 
-      S.year = $('year').value;
+      S.year =
+        $('year').value;
 
-      updateCount();
+      updateInfo();
+
     }
   );
+
 }
 
 
@@ -486,7 +1017,9 @@ if ($('year')) {
 // ============================================================
 
 document
-  .querySelectorAll('[data-t]')
+  .querySelectorAll(
+    '#rtypes [data-t]'
+  )
   .forEach(btn => {
 
     btn.addEventListener(
@@ -494,515 +1027,547 @@ document
       () => {
 
         document
-          .querySelectorAll('[data-t]')
+          .querySelectorAll(
+            '#rtypes [data-t]'
+          )
           .forEach(x =>
-            x.classList.remove('active')
+            x.classList.remove('on')
           );
 
-        btn.classList.add('active');
+
+        btn.classList.add('on');
+
 
         S.rtype =
-          btn.dataset.t ||
-          'ams';
+          btn.dataset.t;
 
-        const title =
-          $('reportTitle');
 
-        if (title) {
+        updateGenerateControls();
 
-          const names = {
-            ams: 'AMS Report',
-            ybc: 'Year Book Closing',
-            intim: 'Intimation Report'
-          };
-
-          title.textContent =
-            names[S.rtype] ||
-            'Report';
-        }
-
-        updateUI();
       }
     );
+
   });
 
 
 // ============================================================
-// UPDATE COUNT
+// REPORT TYPE UI
 // ============================================================
 
-function updateCount() {
+function updateGenerateControls() {
 
-  const rows = S.mappings.filter(x => {
-
-    const district =
-      safe(
-        x.DIST_EN ||
-        x.DISTRICT_EN ||
-        x.district ||
-        x.District
-      );
-
-    const ps =
-      safe(
-        x.PS_EN ||
-        x.PS_NAME_EN ||
-        x.PS ||
-        x.ps
-      );
-
-    const gp =
-      safe(
-        x.GP_EN ||
-        x.GP_NAME_EN ||
-        x.GP ||
-        x.gp
-      );
-
-    const districtOK =
-      !S.district ||
-      norm(district) === norm(S.district);
-
-    const psOK =
-      !S.ps ||
-      norm(ps) === norm(S.ps);
-
-    const gpOK =
-      S.gp === 'ALL' ||
-      !S.gp ||
-      norm(gp) === norm(S.gp);
-
-    return districtOK && psOK && gpOK;
-  });
+  const amsBox =
+    $('amsBox');
 
 
-  S.filteredMappings = rows;
+  const letterSel =
+    $('letterSel');
 
-
-  if ($('count')) {
-    $('count').textContent =
-      rows.length;
-  }
-
-  if ($('gpCount')) {
-    $('gpCount').textContent =
-      rows.length;
-  }
-}
-
-
-// ============================================================
-// UPDATE UI
-// ============================================================
-
-function updateUI() {
-
-  updateCount();
-
-  const btn = $('genBtn');
-
-  if (btn) {
-    btn.textContent =
-      genLabel();
-  }
-}
-
-
-// ============================================================
-// GENERATE BUTTON
-// ============================================================
-
-if ($('genBtn')) {
-
-  $('genBtn').addEventListener(
-    'click',
-    () => {
-
-      withBusy(
-        generateLetters
-      );
-
-    }
-  );
-}
-
-
-// ============================================================
-// GENERATE LABEL
-// ============================================================
-
-function genLabel() {
 
   if (S.rtype === 'ams') {
-    return 'Generate AMS Report';
+
+    if (amsBox) {
+      amsBox.hidden = false;
+    }
+
+    if (letterSel) {
+      letterSel.hidden = true;
+    }
+
+    buildAmsPS();
+
+  } else {
+
+    if (amsBox) {
+      amsBox.hidden = true;
+    }
+
+    if (letterSel) {
+      letterSel.hidden = false;
+    }
+
   }
 
-  if (S.rtype === 'ybc') {
-    return 'Generate Cover Letter';
+
+  const btn =
+    $('genBtn');
+
+
+  if (!btn) return;
+
+
+  if (S.rtype === 'ams') {
+
+    btn.textContent =
+      'Generate AMS Report';
+
+  } else if (
+    S.rtype === 'ybc'
+  ) {
+
+    btn.textContent =
+      'Generate Cover Letter';
+
+  } else {
+
+    btn.textContent =
+      'Generate Intimation Report';
+
   }
 
-  if (S.rtype === 'intim') {
-    return 'Generate Intimation Report';
-  }
-
-  return 'Generate Report';
 }
 
 
 // ============================================================
-// GENERATE LETTERS
+// AMS PS
 // ============================================================
 
-async function generateLetters() {
+function buildAmsPS() {
 
-  console.log('================================');
-  console.log('START GENERATION');
-  console.log('Report Type:', S.rtype);
-  console.log('Year:', S.year);
-  console.log('District:', S.district);
-  console.log('PS:', S.ps);
-  console.log('GP:', S.gp);
-  console.log('================================');
+  const box =
+    $('amsPs');
 
 
-  if (!S.user) {
-    throw new Error(
-      'Please login first.'
+  if (!box) return;
+
+
+  const psList =
+    [...new Set(
+      S.mappings
+        .filter(m =>
+          norm(getDistrict(m)) ===
+          norm(S.district)
+        )
+        .map(getPS)
+        .filter(Boolean)
+    )].sort();
+
+
+  box.innerHTML =
+    psList
+      .map((p, i) => {
+
+        const checked =
+          S.selectedAmsPs.includes(p)
+            ? 'checked'
+            : '';
+
+
+        return `
+          <label class="check">
+            <input
+              type="checkbox"
+              value="${UI.esc(p)}"
+              ${checked}
+            >
+            <span>${UI.esc(p)}</span>
+          </label>
+        `;
+
+      })
+      .join('');
+
+
+  box
+    .querySelectorAll(
+      'input[type="checkbox"]'
+    )
+    .forEach(ch => {
+
+      ch.addEventListener(
+        'change',
+        () => {
+
+          S.selectedAmsPs =
+            [
+              ...box.querySelectorAll(
+                'input:checked'
+              )
+            ]
+              .map(x => x.value);
+
+          updateInfo();
+
+        }
+      );
+
+    });
+
+}
+
+
+// ============================================================
+// AMS MODE
+// ============================================================
+
+document
+  .querySelectorAll(
+    '#amsMode [data-m]'
+  )
+  .forEach(btn => {
+
+    btn.addEventListener(
+      'click',
+      () => {
+
+        document
+          .querySelectorAll(
+            '#amsMode [data-m]'
+          )
+          .forEach(x =>
+            x.classList.remove('on')
+          );
+
+
+        btn.classList.add('on');
+
+
+        S.amsMode =
+          btn.dataset.m;
+
+
+        updateInfo();
+
+      }
     );
+
+  });
+
+
+// ============================================================
+// INFO
+// ============================================================
+
+function updateInfo() {
+
+  const info =
+    $('info');
+
+
+  if (!info) return;
+
+
+  if (
+    S.rtype === 'ams'
+  ) {
+
+    info.innerHTML =
+      `Select one or more Panchayat Samiti for AMS report.`;
+
+    return;
+
   }
 
 
   if (!S.district) {
-    throw new Error(
-      'Please select District.'
-    );
+
+    info.innerHTML =
+      'Please select District.';
+
+    return;
+
   }
 
 
   if (!S.ps) {
-    throw new Error(
-      'Please select Panchayat Samiti.'
-    );
+
+    info.innerHTML =
+      'Please select Panchayat Samiti.';
+
+    return;
+
   }
 
-
-  const report =
-    REPORTS[S.rtype];
-
-
-  if (!report) {
-    throw new Error(
-      'Invalid report type: ' +
-      S.rtype
-    );
-  }
-
-
-  console.log(
-    'Template:',
-    report.tpl
-  );
-
-
-  // ----------------------------------------------------------
-  // FILTER MAPPINGS
-  // ----------------------------------------------------------
 
   const rows =
-    S.mappings.filter(m => {
-
-      const district =
-        safe(
-          m.DIST_EN ||
-          m.DISTRICT_EN ||
-          m.district ||
-          m.District
-        );
-
-      const ps =
-        safe(
-          m.PS_EN ||
-          m.PS_NAME_EN ||
-          m.PS ||
-          m.ps
-        );
-
-      const gp =
-        safe(
-          m.GP_EN ||
-          m.GP_NAME_EN ||
-          m.GP ||
-          m.gp
-        );
+    getSelectedMappings();
 
 
-      const districtOK =
-        norm(district) ===
-        norm(S.district);
+  info.innerHTML =
+    `<b>${rows.length}</b> Gram Panchayat selected`;
 
 
-      const psOK =
-        norm(ps) ===
-        norm(S.ps);
+  const warn =
+    $('warn');
 
 
-      const gpOK =
-        S.gp === 'ALL' ||
-        norm(gp) === norm(S.gp);
+  if (warn) {
 
+    warn.textContent =
+      '';
 
-      return (
-        districtOK &&
-        psOK &&
-        gpOK
-      );
-    });
-
-
-  console.log(
-    'Filtered mapping rows:',
-    rows.length
-  );
-
-
-  if (!rows.length) {
-    throw new Error(
-      'No Gram Panchayat mapping found.'
-    );
   }
 
-
-  // ----------------------------------------------------------
-  // CREATE VALUES
-  // ----------------------------------------------------------
-
-  const values =
-    rows.map(m => {
-
-      const gpEn =
-        safe(
-          m.GP_EN ||
-          m.GP_NAME_EN ||
-          m.GP ||
-          m.gp
-        );
-
-
-      const gpHi =
-        safe(
-          m.GP_HI ||
-          m.GP_NAME_HI ||
-          m.GP_HINDI ||
-          m.gp_hi
-        );
-
-
-      const psEn =
-        safe(
-          m.PS_EN ||
-          m.PS_NAME_EN ||
-          m.PS ||
-          m.ps
-        );
-
-
-      const psHi =
-        safe(
-          m.PS_HI ||
-          m.PS_NAME_HI ||
-          m.PS_HINDI ||
-          m.ps_hi
-        );
-
-
-      const distEn =
-        safe(
-          m.DIST_EN ||
-          m.DISTRICT_EN ||
-          m.district ||
-          m.District
-        );
-
-
-      const distHi =
-        safe(
-          m.DIST_HI ||
-          m.DISTRICT_HI ||
-          m.DISTRICT_HINDI ||
-          m.dist_hi
-        );
-
-
-      const dispatch =
-        findDispatch(
-          gpEn,
-          psEn,
-          distEn
-        );
-
-
-      const dispatchNo =
-        dispatch
-          ? getDispatchNumber(dispatch)
-          : '';
-
-
-      const dispatchName =
-        dispatch
-          ? getDispatchName(dispatch)
-          : '';
-
-
-      const para =
-        dispatch
-          ? getPara(dispatch)
-          : '';
-
-
-      const englishName =
-        gpEn;
-
-
-      const hindiName =
-        gpHi;
-
-
-      const values = {
-
-        YEAR: S.year,
-
-        GP_NAME_EN:
-          gpEn,
-
-        GP_NAME_ENG:
-          englishName,
-
-        GP_NAME_HI:
-          hindiName,
-
-        GP_NAME_HINDI:
-          hindiName,
-
-        GP_NAME:
-          hindiName,
-
-        PS_NAME_EN:
-          psEn,
-
-        PS_NAME_HI:
-          psHi,
-
-        PS_NAME:
-          psHi,
-
-        DISTRICT_EN:
-          distEn,
-
-        DISTRICT_HI:
-          distHi,
-
-        DISTRICT:
-          distHi,
-
-        DISPATCH_NO:
-          dispatchNo,
-
-        DISPATCH_NAME:
-          dispatchName,
-
-        DATE:
-          today(),
-
-        PARA_COUNT:
-          para,
-
-        OFFICE_NAME:
-          distHi,
-
-        DIVISION_NAME:
-          distHi,
-
-        CONSTITUTION_OBJECTION:
-          '0',
-
-        SERIOUS_OBJECTION:
-          '0',
-
-        PARA_BREAKUP:
-          para
-      };
-
-
-      return values;
-    });
-
-
-  console.log(
-    'Records to generate:',
-    values.length
-  );
-
-
-  console.log(
-    'FIRST RECORD:',
-    values[0]
-  );
-
-
-  // ----------------------------------------------------------
-  // GENERATE DOCX
-  // ----------------------------------------------------------
-
-  console.log(
-    'Calling generateDocx...'
-  );
-
-
-  const blob =
-    await generateDocx(
-      values,
-      report.tpl
-    );
-
-
-  console.log(
-    'generateDocx returned:',
-    blob
-  );
-
-
-  if (!blob) {
-    throw new Error(
-      'Document generator returned empty file.'
-    );
-  }
-
-
-  const filename =
-    `${report.prefix}_${slug(S.district)}_${slug(S.ps)}_${S.year}.docx`;
-
-
-  console.log(
-    'Final filename:',
-    filename
-  );
-
-
-  return {
-    blob,
-    name: filename
-  };
 }
 
 
 // ============================================================
-// DISPATCH FINDER
+// SELECTED MAPPINGS
+// ============================================================
+
+function getSelectedMappings() {
+
+  return S.mappings.filter(m => {
+
+    const districtOK =
+      norm(getDistrict(m)) ===
+      norm(S.district);
+
+
+    const psOK =
+      norm(getPS(m)) ===
+      norm(S.ps);
+
+
+    const gpOK =
+      S.gp === 'ALL' ||
+      norm(getGP(m)) ===
+      norm(S.gp);
+
+
+    return (
+      districtOK &&
+      psOK &&
+      gpOK
+    );
+
+  });
+
+}
+
+
+// ============================================================
+// DISPATCH HELPERS
+// ============================================================
+
+function getDispatchYear(d) {
+
+  return safe(
+    d.Year ||
+    d.YEAR ||
+    d.year
+  );
+
+}
+
+
+function getDispatchGP(d) {
+
+  return safe(
+    d['GP Name'] ||
+    d['Gram Panchayat'] ||
+    d.GP_NAME_EN ||
+    d.GP_EN ||
+    d.GP ||
+    d.gp
+  );
+
+}
+
+
+function getDispatchPS(d) {
+
+  return safe(
+    d['PS Name'] ||
+    d['Panchayat Samiti'] ||
+    d.PS_NAME_EN ||
+    d.PS_EN ||
+    d.PS ||
+    d.ps
+  );
+
+}
+
+
+function getDispatchDistrict(d) {
+
+  return safe(
+    d.District ||
+    d.DIST_EN ||
+    d.DISTRICT_EN ||
+    d.district
+  );
+
+}
+
+
+function getDispatchNumber(d) {
+
+  const keys = [
+
+    'Dispatch No',
+    'Dispatch Number',
+    'Dispatch Sankhya',
+    'dispatch no',
+    'dispatch number',
+    'dispatch sankhya',
+
+    'DISPATCH_NO',
+    'Dispatch_No',
+    'DISPATCH',
+
+    'Sankhya',
+    'sankhya'
+
+  ];
+
+
+  for (
+    const key of keys
+  ) {
+
+    if (
+      safe(d[key])
+    ) {
+
+      return safe(d[key]);
+
+    }
+
+  }
+
+
+  for (
+    const key of Object.keys(d || {})
+  ) {
+
+    const k =
+      key
+        .toLowerCase();
+
+
+    if (
+      k.includes('dispatch') ||
+      k.includes('sankhya')
+    ) {
+
+      if (
+        safe(d[key])
+      ) {
+
+        return safe(d[key]);
+
+      }
+
+    }
+
+  }
+
+
+  return '';
+
+}
+
+
+function getDispatchName(d) {
+
+  const keys = [
+
+    'Dispatch Name',
+    'Dispatch File',
+    'DISPATCH_NAME',
+    'Dispatch_Name',
+    'Name',
+    'NAME',
+    'File',
+    'file'
+
+  ];
+
+
+  for (
+    const key of keys
+  ) {
+
+    if (
+      safe(d[key])
+    ) {
+
+      return safe(d[key]);
+
+    }
+
+  }
+
+
+  return '';
+
+}
+
+
+function getPara(d) {
+
+  const keys = [
+
+    'Para Sankhya',
+    'Para Count',
+    'Para',
+    'para sankhya',
+    'para count',
+
+    'PARA_COUNT',
+    'PARA',
+    'Para_Count'
+
+  ];
+
+
+  for (
+    const key of keys
+  ) {
+
+    if (
+      safe(d[key])
+    ) {
+
+      return safe(d[key]);
+
+    }
+
+  }
+
+
+  for (
+    const key of Object.keys(d || {})
+  ) {
+
+    const k =
+      key
+        .toLowerCase();
+
+
+    if (
+      k.includes('para') ||
+      k.includes('sankhya')
+    ) {
+
+      if (
+        safe(d[key])
+      ) {
+
+        return safe(d[key]);
+
+      }
+
+    }
+
+  }
+
+
+  return '';
+
+}
+
+
+// ============================================================
+// FIND DISPATCH
 // ============================================================
 
 function findDispatch(
   gp,
   ps,
-  district
+  district,
+  year
 ) {
 
   const gpN =
@@ -1015,22 +1580,22 @@ function findDispatch(
     norm(district);
 
 
-  // First try exact GP
+  // Exact GP + year
   let found =
     S.dispatches.find(d => {
 
-      const dgp =
-        norm(
-          d.GP_NAME_EN ||
-          d.GP_EN ||
-          d.GP ||
-          d.gp ||
-          d['GP Name'] ||
-          d['Gram Panchayat']
-        );
+      const dg =
+        norm(getDispatchGP(d));
+
+      const dy =
+        norm(getDispatchYear(d));
 
 
-      return dgp === gpN;
+      return (
+        dg === gpN &&
+        (!year || dy === norm(year))
+      );
+
     });
 
 
@@ -1039,36 +1604,26 @@ function findDispatch(
   }
 
 
-  // Try GP + PS
+  // GP + PS + year
   found =
     S.dispatches.find(d => {
 
-      const dgp =
-        norm(
-          d.GP_NAME_EN ||
-          d.GP_EN ||
-          d.GP ||
-          d.gp ||
-          d['GP Name'] ||
-          d['Gram Panchayat']
-        );
+      const dg =
+        norm(getDispatchGP(d));
 
+      const dp =
+        norm(getDispatchPS(d));
 
-      const dps =
-        norm(
-          d.PS_NAME_EN ||
-          d.PS_EN ||
-          d.PS ||
-          d.ps ||
-          d['PS Name'] ||
-          d['Panchayat Samiti']
-        );
+      const dy =
+        norm(getDispatchYear(d));
 
 
       return (
-        dgp === gpN &&
-        (!dps || dps === psN)
+        dg === gpN &&
+        (!dp || dp === psN) &&
+        (!year || dy === norm(year))
       );
+
     });
 
 
@@ -1077,303 +1632,411 @@ function findDispatch(
   }
 
 
-  // Try GP + district
+  // GP + district
   found =
     S.dispatches.find(d => {
 
-      const dgp =
-        norm(
-          d.GP_NAME_EN ||
-          d.GP_EN ||
-          d.GP ||
-          d.gp ||
-          d['GP Name'] ||
-          d['Gram Panchayat']
-        );
+      const dg =
+        norm(getDispatchGP(d));
 
+      const dd =
+        norm(getDispatchDistrict(d));
 
-      const ddist =
-        norm(
-          d.DIST_EN ||
-          d.DISTRICT_EN ||
-          d.DISTRICT ||
-          d.district ||
-          d['District']
-        );
+      const dy =
+        norm(getDispatchYear(d));
 
 
       return (
-        dgp === gpN &&
-        (!ddist || ddist === distN)
+        dg === gpN &&
+        (!dd || dd === distN) &&
+        (!year || dy === norm(year))
       );
+
     });
 
 
   return found || null;
+
 }
 
 
 // ============================================================
-// DISPATCH NUMBER
+// LETTER VALUES
 // ============================================================
 
-function getDispatchNumber(d) {
+function letterValues(
+  mapping
+) {
 
-  const candidates = [
+  const gpEn =
+    getGP(mapping);
 
-    d.DISPATCH_NO,
-    d.Dispatch_No,
-    d.DISPATCH,
-    d.Dispatch,
-    d['Dispatch No'],
-    d['Dispatch Number'],
-    d['Dispatch Sankhya'],
-    d['dispatch no'],
-    d['dispatch number'],
-    d['dispatch sankhya'],
-    d.Sankhya,
-    d.sankhya
+  const gpHi =
+    getGPHI(mapping);
 
-  ];
+  const psEn =
+    getPS(mapping);
 
+  const psHi =
+    getPSHi(mapping);
 
-  for (const x of candidates) {
+  const distEn =
+    getDistrict(mapping);
 
-    if (safe(x)) {
-      return safe(x);
-    }
-
-  }
+  const distHi =
+    getDistrictHi(mapping);
 
 
-  // fallback: scan object keys
-  for (const key of Object.keys(d || {})) {
-
-    const k =
-      key
-        .toLowerCase()
-        .replace(/\s+/g, ' ');
-
-
-    if (
-      k.includes('dispatch') ||
-      k.includes('sankhya')
-    ) {
-
-      if (safe(d[key])) {
-        return safe(d[key]);
-      }
-    }
-  }
+  const dispatch =
+    findDispatch(
+      gpEn,
+      psEn,
+      distEn,
+      S.year
+    );
 
 
-  return '';
+  return {
+
+    YEAR:
+      S.year,
+
+    GP_NAME_EN:
+      gpEn,
+
+    GP_NAME_ENG:
+      gpEn,
+
+    GP_NAME_HI:
+      gpHi,
+
+    GP_NAME_HINDI:
+      gpHi,
+
+    GP_NAME:
+      gpHi,
+
+    GP_NAME_HI_EN:
+      `${gpHi} (${gpEn})`,
+
+    PS_NAME_EN:
+      psEn,
+
+    PS_NAME_HI:
+      psHi,
+
+    PS_NAME:
+      psHi,
+
+    DISTRICT_EN:
+      distEn,
+
+    DISTRICT_HI:
+      distHi,
+
+    DISTRICT:
+      distHi,
+
+    DISPATCH_NO:
+      dispatch
+        ? getDispatchNumber(dispatch)
+        : '',
+
+    DISPATCH_NAME:
+      dispatch
+        ? getDispatchName(dispatch)
+        : '',
+
+    DATE:
+      today(),
+
+    PARA_COUNT:
+      dispatch
+        ? getPara(dispatch)
+        : '',
+
+    PARA_BREAKUP:
+      dispatch
+        ? getPara(dispatch)
+        : '',
+
+    OFFICE_NAME:
+      distHi,
+
+    DIVISION_NAME:
+      distHi,
+
+    CONSTITUTION_OBJECTION:
+      '0',
+
+    SERIOUS_OBJECTION:
+      '0'
+
+  };
+
 }
 
 
 // ============================================================
-// DISPATCH NAME
+// GENERATE BUTTON
 // ============================================================
 
-function getDispatchName(d) {
-
-  const candidates = [
-
-    d.DISPATCH_NAME,
-    d.Dispatch_Name,
-    d.NAME,
-    d.Name,
-    d['Dispatch Name'],
-    d['Dispatch File'],
-    d['Dispatch'],
-    d.File,
-    d.file
-
-  ];
+const genButton =
+  $('genBtn');
 
 
-  for (const x of candidates) {
+if (genButton) {
 
-    if (safe(x)) {
-      return safe(x);
-    }
+  genButton.addEventListener(
+    'click',
+    generate
+  );
 
-  }
-
-
-  return '';
 }
 
 
 // ============================================================
-// PARA
+// GENERATE
 // ============================================================
 
-function getPara(d) {
+async function generate() {
 
-  const candidates = [
+  if (!S.user) {
 
-    d.PARA_COUNT,
-    d.PARA,
-    d.Para,
-    d['Para Sankhya'],
-    d['Para Count'],
-    d['Para'],
-    d['para sankhya'],
-    d['para count']
+    toast(
+      'Please sign in first.',
+      'err'
+    );
 
-  ];
-
-
-  for (const x of candidates) {
-
-    if (safe(x)) {
-      return safe(x);
-    }
+    return;
 
   }
 
 
-  // Search dynamically
-  for (const key of Object.keys(d || {})) {
+  genButton.disabled =
+    true;
 
-    const k =
-      key
-        .toLowerCase()
-        .replace(/\s+/g, ' ');
+  const oldText =
+    genButton.textContent;
 
 
-    if (
-      k.includes('para') ||
-      k.includes('sankhya')
-    ) {
-
-      if (safe(d[key])) {
-        return safe(d[key]);
-      }
-    }
-  }
-
-
-  return '';
-}
-
-
-// ============================================================
-// BUSY / ERROR HANDLER
-// ============================================================
-
-async function withBusy(work) {
-
-  const btn =
-    $('genBtn');
-
-
-  if (btn) {
-
-    btn.disabled = true;
-
-    btn.textContent =
-      'Preparing your file...';
-  }
+  genButton.textContent =
+    'Preparing your file...';
 
 
   try {
 
     console.log(
-      '========== GENERATE START =========='
+      '===== GENERATION START ====='
     );
-
-
-    const out =
-      await work();
 
 
     console.log(
-      'GENERATION OUTPUT:',
-      out
+      'User:',
+      S.user.email
+    );
+
+    console.log(
+      'Report:',
+      S.rtype
+    );
+
+    console.log(
+      'Year:',
+      S.year
+    );
+
+    console.log(
+      'District:',
+      S.district
+    );
+
+    console.log(
+      'PS:',
+      S.ps
+    );
+
+    console.log(
+      'GP:',
+      S.gp
     );
 
 
-    if (out) {
+    // --------------------------------------------------------
+    // CURRENTLY SUPPORTED COVERING LETTER
+    // --------------------------------------------------------
 
-      S.last =
-        out;
+    if (
+      S.rtype !== 'ybc'
+    ) {
 
-
-      if ($('rname')) {
-
-        $('rname').textContent =
-          out.name;
-      }
-
-
-      if ($('result')) {
-
-        $('result').hidden =
-          false;
-
-        $('result').scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }
-
-
-      showToast(
-        'Generated successfully.',
-        'ok'
+      throw new Error(
+        `Template for "${S.rtype}" is not uploaded yet. ` +
+        `For now select "Year Book Closing".`
       );
+
     }
+
+
+    if (!S.district) {
+
+      throw new Error(
+        'Please select District.'
+      );
+
+    }
+
+
+    if (!S.ps) {
+
+      throw new Error(
+        'Please select Panchayat Samiti.'
+      );
+
+    }
+
+
+    const mappings =
+      getSelectedMappings();
+
+
+    if (!mappings.length) {
+
+      throw new Error(
+        'No Gram Panchayat found for selected location.'
+      );
+
+    }
+
+
+    console.log(
+      'Selected GPs:',
+      mappings.length
+    );
+
+
+    const values =
+      mappings.map(
+        letterValues
+      );
+
+
+    console.log(
+      'First letter data:',
+      values[0]
+    );
+
+
+    const report =
+      REPORTS[S.rtype];
+
+
+    console.log(
+      'Using template:',
+      report.tpl
+    );
+
+
+    const blob =
+      await generateDocx(
+        values,
+        report.tpl
+      );
+
+
+    if (!blob) {
+
+      throw new Error(
+        'Word generator returned an empty file.'
+      );
+
+    }
+
+
+    const filename =
+      `${report.prefix}_${slug(S.district)}_${slug(S.ps)}_${slug(S.year)}.docx`;
+
+
+    S.last = {
+
+      blob,
+
+      name:
+        filename
+
+    };
+
+
+    if ($('rname')) {
+
+      $('rname').textContent =
+        filename;
+
+    }
+
+
+    if ($('result')) {
+
+      $('result').hidden =
+        false;
+
+      $('result').scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+    }
+
+
+    toast(
+      `Successfully generated ${values.length} letter(s).`,
+      'ok'
+    );
+
+
+    console.log(
+      '===== GENERATION SUCCESS ====='
+    );
 
 
   } catch (e) {
 
-    // VERY IMPORTANT:
-    // Do NOT hide the real error.
-
     console.error(
-      '========== GENERATE ERROR =========='
+      '===== GENERATION ERROR ====='
     );
 
-    console.error(
-      e
-    );
+    console.error(e);
 
     console.error(
-      'Message:',
+      'message:',
       e?.message
     );
 
     console.error(
-      'Code:',
+      'code:',
       e?.code
     );
 
     console.error(
-      'Properties:',
+      'properties:',
       e?.properties
     );
 
     console.error(
-      'Stack:',
+      'stack:',
       e?.stack
     );
 
-    console.error(
-      '===================================='
-    );
+
+    let message =
+      getRealError(e);
 
 
-    let msg = 'Unknown error';
-
-
-    // Docxtemplater errors
     if (
       e?.properties?.errors?.length
     ) {
 
-      msg =
+      message =
         e.properties.errors
           .map(x =>
             x.properties?.explanation ||
@@ -1381,66 +2044,52 @@ async function withBusy(work) {
             String(x)
           )
           .join(' | ');
+
     }
 
 
-    // Normal JS error
-    else if (e?.message) {
-
-      msg =
-        e.message;
-    }
-
-
-    else if (e?.code) {
-
-      msg =
-        e.code;
-    }
-
-
-    else {
-
-      msg =
-        String(e);
-    }
-
-
-    showToast(
-      'Generate Error: ' + msg,
+    toast(
+      'Generate Error: ' + message,
       'err'
     );
 
+
   } finally {
 
-    if (btn) {
+    genButton.disabled =
+      false;
 
-      btn.disabled = false;
+    genButton.textContent =
+      oldText;
 
-      btn.textContent =
-        genLabel();
-    }
   }
+
 }
 
 
 // ============================================================
-// DOWNLOAD
+// DOWNLOAD WORD
 // ============================================================
 
-if ($('downloadBtn')) {
+const downloadButton =
+  $('dlBtn');
 
-  $('downloadBtn').addEventListener(
+
+if (downloadButton) {
+
+  downloadButton.addEventListener(
     'click',
     () => {
 
       if (!S.last?.blob) {
 
-        showError(
-          'No generated file available.'
+        toast(
+          'No generated file available.',
+          'err'
         );
 
         return;
+
       }
 
 
@@ -1469,67 +2118,982 @@ if ($('downloadBtn')) {
 
 
       setTimeout(
-        () => URL.revokeObjectURL(url),
+        () =>
+          URL.revokeObjectURL(url),
         1000
       );
+
     }
   );
+
 }
 
 
 // ============================================================
-// TOAST
+// WHATSAPP
 // ============================================================
 
-function showToast(
-  message,
-  type = 'ok'
-) {
+const waButton =
+  $('waBtn');
 
-  if (
-    UI &&
-    typeof UI.showToast === 'function'
-  ) {
 
-    UI.showToast(
-      message,
-      type
+if (waButton) {
+
+  waButton.addEventListener(
+    'click',
+    () => {
+
+      const text =
+        S.last
+          ? `Generated Word file: ${S.last.name}`
+          : 'Covering letter generated.';
+
+
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(text)}`,
+        '_blank'
+      );
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+
+UI.setupNav(
+  view => {
+
+    console.log(
+      'View:',
+      view
     );
 
-    return;
+
+    if (
+      view === 'data'
+    ) {
+
+      renderDispatchData();
+
+    }
+
+
+    if (
+      view === 'upload'
+    ) {
+
+      setupUploadView();
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// FILTER DATA
+// ============================================================
+
+function buildFilterControls() {
+
+  const years =
+    [...new Set(
+      S.dispatches
+        .map(getDispatchYear)
+        .filter(Boolean)
+    )].sort();
+
+
+  if ($('fYear')) {
+
+    $('fYear').innerHTML =
+      `<option value="">All Years</option>` +
+      years
+        .map(y =>
+          `<option value="${UI.esc(y)}">${UI.esc(y)}</option>`
+        )
+        .join('');
+
   }
 
 
-  alert(message);
+  const districts =
+    [...new Set(
+      S.dispatches
+        .map(getDispatchDistrict)
+        .filter(Boolean)
+    )].sort();
+
+
+  if ($('fDist')) {
+
+    $('fDist').innerHTML =
+      `<option value="">All Districts</option>` +
+      districts
+        .map(x =>
+          `<option value="${UI.esc(x)}">${UI.esc(x)}</option>`
+        )
+        .join('');
+
+  }
+
+
+  if ($('fPs')) {
+
+    $('fPs').innerHTML =
+      `<option value="">All Panchayat Samiti</option>`;
+
+  }
+
+
+  if ($('fStatus')) {
+
+    $('fStatus').innerHTML = `
+      <option value="">All Status</option>
+      <option value="with">With Dispatch</option>
+      <option value="without">Without Dispatch</option>
+    `;
+
+  }
+
+
+  [
+    'fYear',
+    'fDist',
+    'fPs',
+    'fStatus',
+    'fSearch'
+  ]
+    .forEach(id => {
+
+      const el =
+        $(id);
+
+      if (!el) return;
+
+
+      el.addEventListener(
+        'input',
+        renderDispatchData
+      );
+
+      el.addEventListener(
+        'change',
+        renderDispatchData
+      );
+
+    });
+
 }
 
 
 // ============================================================
-// HTML ESCAPE
+// RENDER DISPATCH DATA
 // ============================================================
 
-function escapeHtml(value) {
+function renderDispatchData() {
 
-  return safe(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  const out =
+    $('dataOut');
+
+
+  if (!out) return;
+
+
+  const year =
+    safe(
+      $('fYear')?.value
+    );
+
+
+  const district =
+    safe(
+      $('fDist')?.value
+    );
+
+
+  const ps =
+    safe(
+      $('fPs')?.value
+    );
+
+
+  const status =
+    safe(
+      $('fStatus')?.value
+    );
+
+
+  const search =
+    norm(
+      $('fSearch')?.value
+    );
+
+
+  let rows =
+    S.dispatches.filter(d => {
+
+      const y =
+        getDispatchYear(d);
+
+      const dist =
+        getDispatchDistrict(d);
+
+      const p =
+        getDispatchPS(d);
+
+      const gp =
+        getDispatchGP(d);
+
+      const no =
+        getDispatchNumber(d);
+
+
+      if (
+        year &&
+        norm(y) !== norm(year)
+      ) {
+        return false;
+      }
+
+
+      if (
+        district &&
+        norm(dist) !== norm(district)
+      ) {
+        return false;
+      }
+
+
+      if (
+        ps &&
+        norm(p) !== norm(ps)
+      ) {
+        return false;
+      }
+
+
+      if (status === 'with' && !no) {
+        return false;
+      }
+
+
+      if (status === 'without' && no) {
+        return false;
+      }
+
+
+      if (search) {
+
+        const hay =
+          norm(
+            `${gp} ${p} ${dist} ${no}`
+          );
+
+
+        if (
+          !hay.includes(search)
+        ) {
+
+          return false;
+
+        }
+
+      }
+
+
+      return true;
+
+    });
+
+
+  rows =
+    rows.slice(0, 500);
+
+
+  if (!rows.length) {
+
+    out.innerHTML =
+      `<p class="muted">No records found.</p>`;
+
+    return;
+
+  }
+
+
+  const keys =
+    Object.keys(rows[0])
+      .filter(
+        k => k !== '_id'
+      )
+      .slice(0, 10);
+
+
+  out.innerHTML = `
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            ${keys
+              .map(k =>
+                `<th>${UI.esc(k)}</th>`
+              )
+              .join('')}
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${rows
+            .map(row => `
+              <tr>
+                ${keys
+                  .map(k =>
+                    `<td>${UI.esc(row[k])}</td>`
+                  )
+                  .join('')}
+              </tr>
+            `)
+            .join('')}
+
+        </tbody>
+      </table>
+    </div>
+
+    <p class="muted">
+      Showing ${rows.length} record(s)
+    </p>
+  `;
+
 }
 
 
 // ============================================================
-// INITIAL UI
+// UPLOAD VIEW
 // ============================================================
 
-updateUI();
+function setupUploadView() {
+
+  if (!isAdmin()) {
+
+    if ($('noAdmin')) {
+      $('noAdmin').style.display =
+        '';
+    }
+
+    if ($('upBox')) {
+      $('upBox').hidden =
+        true;
+    }
+
+    return;
+
+  }
+
+
+  if ($('noAdmin')) {
+
+    $('noAdmin').style.display =
+      'none';
+
+  }
+
+
+  if ($('upBox')) {
+
+    $('upBox').hidden =
+      false;
+
+  }
+
+}
+
+
+// ============================================================
+// DISPATCH FILE PREVIEW
+// ============================================================
+
+let dispatchRows = [];
+
+
+const dispatchFile =
+  $('file');
+
+
+if (dispatchFile) {
+
+  dispatchFile.addEventListener(
+    'change',
+    async () => {
+
+      const file =
+        dispatchFile.files?.[0];
+
+
+      if (!file) return;
+
+
+      try {
+
+        dispatchRows =
+          await readExcel(file);
+
+
+        if ($('fileInfo')) {
+
+          $('fileInfo').textContent =
+            `${dispatchRows.length} rows loaded`;
+
+        }
+
+
+        if ($('prevBtn')) {
+
+          $('prevBtn').disabled =
+            !dispatchRows.length;
+
+        }
+
+
+        if ($('upBtn')) {
+
+          $('upBtn').disabled =
+            !dispatchRows.length;
+
+        }
+
+
+      } catch (e) {
+
+        console.error(e);
+
+        toast(
+          'Excel error: ' +
+          getRealError(e),
+          'err'
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// EXCEL READER
+// ============================================================
+
+async function readExcel(file) {
+
+  if (
+    typeof XLSX ===
+    'undefined'
+  ) {
+
+    throw new Error(
+      'XLSX library is not loaded.'
+    );
+
+  }
+
+
+  const buffer =
+    await file.arrayBuffer();
+
+
+  const workbook =
+    XLSX.read(
+      buffer,
+      {
+        type: 'array'
+      }
+    );
+
+
+  const sheet =
+    workbook.Sheets[
+      workbook.SheetNames[0]
+    ];
+
+
+  if (!sheet) {
+
+    throw new Error(
+      'Excel sheet not found.'
+    );
+
+  }
+
+
+  return XLSX.utils.sheet_to_json(
+    sheet,
+    {
+      defval: ''
+    }
+  );
+
+}
+
+
+// ============================================================
+// PREVIEW BUTTON
+// ============================================================
+
+if ($('prevBtn')) {
+
+  $('prevBtn').addEventListener(
+    'click',
+    () => {
+
+      const preview =
+        $('preview');
+
+
+      if (!preview) return;
+
+
+      const rows =
+        dispatchRows.slice(0, 20);
+
+
+      if (!rows.length) {
+
+        preview.innerHTML =
+          '<p>No data.</p>';
+
+        return;
+
+      }
+
+
+      const keys =
+        Object.keys(rows[0]);
+
+
+      preview.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              ${keys
+                .map(k =>
+                  `<th>${UI.esc(k)}</th>`
+                )
+                .join('')}
+            </tr>
+          </thead>
+
+          <tbody>
+
+            ${rows
+              .map(r => `
+                <tr>
+                  ${keys
+                    .map(k =>
+                      `<td>${UI.esc(r[k])}</td>`
+                    )
+                    .join('')}
+                </tr>
+              `)
+              .join('')}
+
+          </tbody>
+        </table>
+      `;
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// DISPATCH UPLOAD
+// ============================================================
+
+if ($('upBtn')) {
+
+  $('upBtn').addEventListener(
+    'click',
+    async () => {
+
+      if (!isAdmin()) {
+
+        toast(
+          'Admin access required.',
+          'err'
+        );
+
+        return;
+
+      }
+
+
+      if (!dispatchRows.length) {
+
+        toast(
+          'Please select an Excel file first.',
+          'err'
+        );
+
+        return;
+
+      }
+
+
+      const year =
+        safe(
+          $('upYear')?.value
+        ) ||
+        S.year;
+
+
+      const button =
+        $('upBtn');
+
+
+      button.disabled =
+        true;
+
+
+      try {
+
+        const existing =
+          new Set(
+            S.dispatches
+              .map(d => d._id)
+              .filter(Boolean)
+          );
+
+
+        const result =
+          await uploadDispatchRows(
+            dispatchRows,
+            year,
+            existing,
+            (done, total) => {
+
+              button.textContent =
+                `Uploading ${done}/${total}`;
+
+            }
+          );
+
+
+        toast(
+          `Upload complete. Added: ${result.inserted}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
+          'ok'
+        );
+
+
+        button.textContent =
+          'Upload / Update Firestore';
+
+
+        await loadData();
+
+
+      } catch (e) {
+
+        console.error(e);
+
+        toast(
+          'Upload error: ' +
+          getRealError(e),
+          'err'
+        );
+
+      } finally {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          'Upload / Update Firestore';
+
+      }
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// MAPPING FILE
+// ============================================================
+
+let mappingRows =
+  [];
+
+
+const mappingFile =
+  $('mFile');
+
+
+if (mappingFile) {
+
+  mappingFile.addEventListener(
+    'change',
+    async () => {
+
+      const file =
+        mappingFile.files?.[0];
+
+
+      if (!file) return;
+
+
+      try {
+
+        mappingRows =
+          await readExcel(file);
+
+
+        if ($('mInfo')) {
+
+          $('mInfo').textContent =
+            `${mappingRows.length} mapping rows loaded`;
+
+        }
+
+
+        if ($('mBtn')) {
+
+          $('mBtn').disabled =
+            !mappingRows.length;
+
+        }
+
+
+      } catch (e) {
+
+        console.error(e);
+
+        toast(
+          'Mapping Excel error: ' +
+          getRealError(e),
+          'err'
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// MAPPING UPLOAD
+// ============================================================
+
+if ($('mBtn')) {
+
+  $('mBtn').addEventListener(
+    'click',
+    async () => {
+
+      if (!isAdmin()) {
+
+        toast(
+          'Admin access required.',
+          'err'
+        );
+
+        return;
+
+      }
+
+
+      if (!mappingRows.length) {
+
+        toast(
+          'Please select mapping Excel first.',
+          'err'
+        );
+
+        return;
+
+      }
+
+
+      const button =
+        $('mBtn');
+
+
+      button.disabled =
+        true;
+
+
+      try {
+
+        const existing =
+          new Set(
+            S.mappings
+              .map(d => d._id)
+              .filter(Boolean)
+          );
+
+
+        const result =
+          await uploadMappingRows(
+            mappingRows,
+            existing,
+            (done, total) => {
+
+              button.textContent =
+                `Uploading ${done}/${total}`;
+
+            }
+          );
+
+
+        toast(
+          `Mapping upload complete. Added: ${result.inserted}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
+          'ok'
+        );
+
+
+        button.textContent =
+          'Upload Mapping to Firestore';
+
+
+        await loadData();
+
+
+      } catch (e) {
+
+        console.error(e);
+
+        toast(
+          'Mapping upload error: ' +
+          getRealError(e),
+          'err'
+        );
+
+      } finally {
+
+        button.disabled =
+          false;
+
+        button.textContent =
+          'Upload Mapping to Firestore';
+
+      }
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// RELOAD DATA
+// ============================================================
+
+if ($('reloadBtn')) {
+
+  $('reloadBtn').addEventListener(
+    'click',
+    async () => {
+
+      try {
+
+        $('reloadBtn').disabled =
+          true;
+
+        $('reloadBtn').textContent =
+          'Reloading...';
+
+
+        await loadData();
+
+
+        toast(
+          'Data reloaded successfully.',
+          'ok'
+        );
+
+
+      } catch (e) {
+
+        toast(
+          'Reload error: ' +
+          getRealError(e),
+          'err'
+        );
+
+
+      } finally {
+
+        $('reloadBtn').disabled =
+          false;
+
+        $('reloadBtn').textContent =
+          '🔄 Reload data from Firestore';
+
+      }
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// REAL ERROR
+// ============================================================
+
+function getRealError(e) {
+
+  if (
+    e?.properties?.errors?.length
+  ) {
+
+    return e.properties.errors
+      .map(x =>
+        x.properties?.explanation ||
+        x.message ||
+        String(x)
+      )
+      .join(' | ');
+
+  }
+
+
+  if (e?.message) {
+
+    return e.message;
+
+  }
+
+
+  if (e?.code) {
+
+    return e.code;
+
+  }
+
+
+  return String(e);
+
+}
+
+
+// ============================================================
+// INITIAL STATE
+// ============================================================
 
 console.log(
-  'Jamidara application loaded.'
+  'Jamidara app.js loaded successfully.'
 );
 
 console.log(
-  'Report configuration:',
-  REPORTS
+  'Waiting for Firebase authentication...'
 );

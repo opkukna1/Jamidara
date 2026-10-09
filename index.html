@@ -1,118 +1,716 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#4338ca">
-<title>Cover Letter Generator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.47.4/docxtemplater.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-/* Fallback: agar cdnjs block/fail ho to jsDelivr se load karo */
-if(!window.PizZip)document.write('<script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"><\/script>');
-if(!window.docxtemplater)document.write('<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.47.4/build/docxtemplater.js"><\/script>');
-if(!window.XLSX)document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
-</script>
-</head><body>
-<div id="login"><div class="lcard"><div class="logo xl">✉</div><h1>Cover Letter Generator</h1><p>Sign in to generate official letters</p>
-<button id="gBtn" class="gbtn"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>Continue with Google</button>
-<small id="lerr"></small></div></div>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Cover Letter Generator</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.47.4/docxtemplater.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    if(!window.PizZip) document.write('<script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"><\/script>');
+    if(!window.docxtemplater) document.write('<script src="https://cdn.jsdelivr.net/npm/docxtemplater@3.47.4/build/docxtemplater.js"><\/script>');
+    if(!window.XLSX) document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
+  </script>
 
-<div class="bgblob b1"></div><div class="bgblob b2"></div>
-<header class="top">
-  <button id="menuBtn" aria-label="Menu"><span></span><span></span><span></span></button>
-  <div class="brand"><div class="logo">✉</div><div><h1>Cover Letter Generator</h1><p>Generate official covering letters quickly and accurately</p></div></div>
-  <div class="user"><img id="avatar" class="av" alt=""></div>
-</header>
-<div id="scrim"></div>
-<nav id="drawer">
-  <div class="dhead"><img id="davatar" class="av" alt=""><div><b id="dname">User</b><small id="demail"></small></div></div>
-  <a data-view="dashboard" class="on"><i>🏠</i>Dashboard</a>
-  <a data-view="generate"><i>📄</i>Cover Letter Generator</a>
-  <a data-view="data"><i>📊</i>Dispatch Data</a>
-  <a data-view="upload" id="navUpload"><i>⬆</i>Upload Dispatch File</a>
-  <a data-view="ats"><i>🤖</i>ATS Generate<em>Soon</em></a>
-  <a data-view="settings"><i>⚙</i>Settings</a>
-  <a data-view="about"><i>ℹ</i>About</a>
-  <button id="logoutBtn" class="dlogout">⎋ Sign out</button><div class="dfoot">Version 1.0</div>
-</nav>
-<main>
-<section id="v-dashboard" class="view">
-  <div class="hero"><small id="hello">नमस्ते 👋</small><h2>Official letters,<br>ready in seconds.</h2><p>Choose year, district and gram panchayat. Download the Word file or share it on WhatsApp.</p>
-    <button class="cta" data-view="generate">Generate Cover Letter →</button></div>
-  <div class="stats">
-    <div class="stat"><i>📦</i><b id="stD">–</b><span>Dispatch records</span></div>
-    <div class="stat"><i>🗺</i><b id="stM">–</b><span>Mappings</span></div>
-    <div class="stat"><i>📅</i><b id="stY">–</b><span>Years</span></div></div>
-  <div class="tiles">
-    <button class="tile" data-view="generate"><i>📄</i><b>Cover Letter</b><span>AMS · Cover Letter · Intimation</span></button>
-    <button class="tile" data-view="data"><i>📊</i><b>Dispatch Data</b><span>Search &amp; filter</span></button>
-    <button class="tile" data-view="upload" id="tileUpload"><i>⬆</i><b>Upload Data</b><span>Admin only</span></button>
-    <button class="tile soon" data-view="ats"><span class="badge">Soon</span><i>🤖</i><b>ATS Generate</b><span>Coming soon</span></button></div>
-</section>
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: rgba(19, 27, 44, 0.7);
+      --bg-card: rgba(28, 38, 61, 0.5);
+      --bg-card-hover: rgba(37, 50, 78, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.4);
+      --accent-grad: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+      --accent-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+      --shadow-glow: 0 10px 30px -10px rgba(99, 102, 241, 0.35);
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-<section id="v-generate" class="view"><div class="card"><div class="ch"><i>📄</i><div><h2>Cover Letter Generator</h2><p>Choose report type and location</p></div></div>
-  <div id="indexBanner"></div>
-  <div class="lab">Report type</div>
-  <div class="rtypes" id="rtypes"><button class="on" data-t="ams"><i>📑</i>AMS Report</button><button data-t="ybc"><i>📘</i>Cover Letter</button><button data-t="intim"><i>📨</i>Intimation Report</button></div>
-  <label><span class="step">1</span>Year<select id="year"></select></label>
-  <div id="letterSel">
-  <label><span class="step">2</span>District<select id="dist"></select></label>
-  <label><span class="step">3</span>Panchayat Samiti<select id="ps"></select></label>
-  <label><span class="step">4</span>Gram Panchayat<select id="gp"></select></label></div>
-  <div id="amsBox" hidden>
-    <div class="lab"><span class="step">2</span>Panchayat Samiti — tick karke Watch List banao</div>
-    <input id="amsSearch" type="search" placeholder="🔍 PS search karo" autocomplete="off">
-    <div class="wl-bar"><button type="button" id="amsAll">Sab tick</button><button type="button" id="amsNone">Sab untick</button><span id="amsCount" class="muted"></span></div>
-    <div id="amsPs" class="checks"></div>
-    <button type="button" id="amsSave" class="primary">💾 Save Watch List</button>
-    <div class="lab"><span class="step">3</span>⭐ Saved Watch List</div>
-    <div id="amsSaved" class="wl-saved"></div>
-    <div class="lab"><span class="step">4</span>PS in the totals</div>
-    <div class="seg" id="amsMode"><button type="button" class="on" data-m="1">With PS</button><button type="button" data-m="2">Without PS</button></div>
-    <p class="muted" style="font-size:.78rem;margin:8px 0 0">With PS: PS ki apni row bhi totals me ginti hai. Without PS: sirf Gram Panchayat.</p></div>
-  <div id="info" class="info"></div><div id="warn" class="warn"></div>
-  <div id="rowsPreview"></div>
-  <button id="genBtn" class="primary big">Generate Cover Letter</button>
-  <div id="result" class="result" hidden><div class="ok">✓</div><b>File ready</b><small id="rname"></small>
-    <div class="row"><button id="dlBtn" class="primary">⬇ Download Word</button><button id="waBtn" class="wa">Share on WhatsApp</button></div></div>
-</div></section>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+    
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(217, 70, 239, 0.12) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
 
-<section id="v-data" class="view"><div class="card"><div class="ch"><i>📊</i><div><h2>Dispatch Data</h2><p>Search and filter all records</p></div></div>
-  <div class="filters"><select id="fYear"></select><select id="fDist"></select><select id="fPs"></select><select id="fStatus"></select>
-  <input id="fSearch" placeholder="🔍  Search GP / Dispatch Number"></div>
-  <div id="dataOut"></div></div></section>
+    /* Ambient Animated Glows */
+    .bgblob {
+      position: fixed;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: -1;
+      opacity: 0.4;
+      pointer-events: none;
+      animation: floatBlob 18s ease-in-out infinite alternate;
+    }
+    .b1 { top: -100px; left: -100px; background: #6366f1; }
+    .b2 { bottom: -100px; right: -100px; background: #d946ef; animation-delay: -9s; }
+    @keyframes floatBlob {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(60px, 40px) scale(1.15); }
+    }
 
-<section id="v-upload" class="view"><div class="card"><div class="ch"><i>⬆</i><div><h2>Upload Dispatch File</h2><p>Admin only · updates Firestore safely</p></div></div>
-  <p id="noAdmin" class="muted">🔒 Only admin accounts can upload data.</p>
-  <div id="upBox" hidden>
-  <label>Year for this file<select id="upYear"></select></label>
-  <label>Dispatch .xlsx file<input type="file" id="file" accept=".xlsx"></label>
-  <div id="fileInfo" class="info"></div><div id="preview" class="scroll"></div>
-  <div class="row"><button id="prevBtn" disabled>👁 Preview Data</button><button id="upBtn" class="primary" disabled>Upload / Update Firestore</button></div>
-  <div id="upRes" class="info"></div>
-  <hr><h3>Mapping File (Hindi / English)</h3>
-  <p class="muted">Columns needed: GP_EN, GP_HI, PS_EN, PS_HI, DIST_EN, DIST_HI</p>
-  <label>Mapping .xlsx file<input type="file" id="mFile" accept=".xlsx"></label>
-  <div id="mInfo" class="info"></div>
-  <button id="mBtn" class="primary big" disabled>Upload Mapping to Firestore</button>
-  <div id="mRes" class="info"></div></div></div></section>
+    /* Modern Login Overlay */
+    #login {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .lcard {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), var(--shadow-glow);
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+    }
+    .logo.xl {
+      font-size: 3rem;
+      width: 72px;
+      height: 72px;
+      background: var(--accent-grad);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-glow);
+    }
+    .lcard h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .lcard p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 28px; }
 
-<section id="v-ats" class="view"><div class="card center"><div class="logo xl">🤖</div><h2>ATS Generate</h2><span class="chip">Coming soon</span>
-  <p class="muted">This section is reserved for the ATS generator and will be added in a future update.</p></div></section>
-<section id="v-settings" class="view"><div class="card"><div class="ch"><i>⚙</i><div><h2>Settings</h2><p>Data cache</p></div></div>
-  <p class="muted">Site kholne par sirf ek chhota index padha jata hai. Panchayat Samiti chunne par usi ka data aata hai aur 12 ghante cache me rehta hai. Naya data (kisi aur ne upload kiya ho) chahiye to Reload dabao.</p><button id="reloadBtn" class="primary">🔄 Reload data from Firestore</button></div></section>
-<section id="v-about" class="view"><div class="card center"><div class="logo xl">✉</div><h2>Cover Letter Generator</h2>
-  <p class="muted">A digital tool for generating official covering letters from centralized dispatch data.</p><span class="chip">Version 1.0</span></div></section>
-</main>
-<div id="toasts"></div>
-<script>
-/* Fallback: if app.js fails to load, the button explains why instead of doing nothing. app.js replaces this handler. */
-(function(){var b=document.getElementById('gBtn'),l=document.getElementById('lerr');
-b.onclick=function(){l.textContent='App load nahi hui. Saari files (app.js, js/ folder, firebase-config.js) check karo aur page hard refresh karo.';};
-window.addEventListener('error',function(e){l.textContent='Error: '+(e.message||'file load nahi hui');});})();
-</script>
-<script type="module" src="app.js" onerror="document.getElementById('lerr').textContent='app.js load nahi hua - file ka naam/jagah check karo.'"></script>
-</body></html>
+    /* Google Sign-in Button */
+    .gbtn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #ffffff;
+      color: #0f172a;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 14px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+    }
+    .gbtn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2); }
+    #lerr { color: #f87171; font-size: 0.85rem; margin-top: 16px; display: block; }
+
+    /* Header Bar */
+    header.top {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: rgba(9, 13, 22, 0.75);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand .logo {
+      width: 42px;
+      height: 42px;
+      background: var(--accent-grad);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: var(--shadow-glow);
+    }
+    .brand h1 { font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+    .brand p { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* Profile Avatar */
+    .user .av, .dhead .av {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid rgba(99, 102, 241, 0.5);
+      object-fit: cover;
+      background: #1e293b;
+    }
+
+    /* Navigation Drawer & Scrim */
+    #scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+    #scrim.on { opacity: 1; pointer-events: auto; }
+
+    #drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(24px);
+      z-index: 250;
+      border-right: 1px solid var(--border-color);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: var(--transition);
+    }
+    #drawer.open { transform: translateX(0); }
+    
+    .dhead { display: flex; align-items: center; gap: 12px; padding-bottom: 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+    .dhead b { font-size: 0.95rem; display: block; color: var(--text-main); }
+    .dhead small { font-size: 0.78rem; color: var(--text-muted); }
+
+    #drawer a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    #drawer a i { font-style: normal; font-size: 1.1rem; }
+    #drawer a:hover, #drawer a.on {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+    }
+    #drawer a em {
+      margin-left: auto;
+      font-style: normal;
+      font-size: 0.68rem;
+      background: rgba(236, 72, 153, 0.2);
+      color: #f472b6;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(236, 72, 153, 0.3);
+    }
+
+    .dlogout {
+      margin-top: auto;
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .dlogout:hover { background: rgba(239, 68, 68, 0.2); }
+    .dfoot { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 12px; }
+
+    /* Main Container & Section Views */
+    main { max-width: 1000px; margin: 0 auto; padding: 28px 20px 60px; }
+    .view { display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .view.on { display: block; opacity: 1; }
+
+    /* Dashboard Hero */
+    .hero {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; width: 200px; height: 100%;
+      background: var(--accent-grad);
+      opacity: 0.1;
+      clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+    }
+    .hero small { color: #a5b4fc; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .hero h2 { font-size: 2rem; font-weight: 800; margin: 8px 0 12px; line-height: 1.25; }
+    .hero p { color: var(--text-muted); font-size: 0.95rem; max-width: 520px; margin-bottom: 24px; }
+    
+    button.cta, button.primary {
+      background: var(--accent-grad);
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow-glow);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button.cta:hover, button.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.5);
+    }
+    button.primary.big { width: 100%; padding: 16px; font-size: 1.05rem; justify-content: center; margin-top: 20px; }
+
+    /* Dashboard Stats Row */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .stat i { font-style: normal; font-size: 1.8rem; background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 12px; }
+    .stat b { font-size: 1.5rem; display: block; font-weight: 700; color: #ffffff; }
+    .stat span { font-size: 0.82rem; color: var(--text-muted); }
+
+    /* Quick Dashboard Action Tiles */
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .tile {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      text-align: left;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      color: var(--text-main);
+    }
+    .tile:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-3px);
+    }
+    .tile i { font-style: normal; font-size: 1.8rem; display: block; margin-bottom: 12px; }
+    .tile b { display: block; font-size: 1rem; margin-bottom: 4px; }
+    .tile span { font-size: 0.8rem; color: var(--text-muted); }
+    .tile.soon { opacity: 0.65; cursor: not-allowed; }
+    .tile .badge { position: absolute; top: 16px; right: 16px; background: rgba(236, 72, 153, 0.2); color: #f472b6; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(236, 72, 153, 0.3); }
+
+    /* Modern Form Cards & Inputs */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+    .card.center { text-align: center; }
+    .ch { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+    .ch i { font-style: normal; font-size: 1.6rem; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 12px; border-radius: 14px; }
+    .ch h2 { font-size: 1.3rem; font-weight: 700; }
+    .ch p { font-size: 0.85rem; color: var(--text-muted); }
+
+    label { display: block; margin-bottom: 18px; font-size: 0.88rem; font-weight: 600; color: var(--text-muted); }
+    .step {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      margin-right: 8px;
+    }
+
+    select, input[type="search"], input[type="file"] {
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 0.92rem;
+      outline: none;
+      transition: var(--transition);
+    }
+    select:focus, input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+
+    /* Report Type Pills */
+    .rtypes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .rtypes button {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 12px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .rtypes button.on {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #6366f1;
+      color: #ffffff;
+    }
+
+    /* Result Box & Actions */
+    .result {
+      margin-top: 24px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 24px;
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+    .result .ok { width: 48px; height: 48px; background: #10b981; color: #fff; font-size: 1.4rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+    .result .row { display: flex; gap: 12px; margin-top: 16px; justify-content: center; }
+    button.wa {
+      background: #25d366;
+      color: #ffffff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    button.wa:hover { background: #22c55e; transform: translateY(-2px); }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+    .chip { display: inline-block; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- Google Authentication Overlay -->
+  <div id="login">
+    <div class="lcard">
+      <div class="logo xl">✉</div>
+      <h1>Cover Letter Generator</h1>
+      <p>Sign in with your Google account to access official dispatch templates and letters.</p>
+      <button id="gBtn" class="gbtn">
+        <svg width="20" height="20" viewBox="0 0 48 48">
+          <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+          <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+          <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+        </svg>
+        Continue with Google
+      </button>
+      <small id="lerr"></small>
+    </div>
+  </div>
+
+  <div class="bgblob b1"></div>
+  <div class="bgblob b2"></div>
+
+  <!-- Header Navigation -->
+  <header class="top">
+    <button id="menuBtn" aria-label="Menu" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;">☰</button>
+    <div class="brand">
+      <div class="logo">✉</div>
+      <div>
+        <h1>Cover Letter Generator</h1>
+        <p>Official Covering Letter Automation Engine</p>
+      </div>
+    </div>
+    <div class="user"><img id="avatar" class="av" alt="User Avatar"></div>
+  </header>
+
+  <div id="scrim"></div>
+
+  <!-- Sidebar Drawer Navigation -->
+  <nav id="drawer">
+    <div class="dhead">
+      <img id="davatar" class="av" alt="User Avatar">
+      <div>
+        <b id="dname">User</b>
+        <small id="demail"></small>
+      </div>
+    </div>
+    <a data-view="dashboard" class="on"><i>🏠</i> Dashboard</a>
+    <a data-view="generate"><i>📄</i> Cover Letter Generator</a>
+    <a data-view="data"><i>📊</i> Dispatch Data</a>
+    <a data-view="upload" id="navUpload"><i>⬆</i> Upload Dispatch File</a>
+    <a data-view="ats"><i>🤖</i> ATS Generate <em>Soon</em></a>
+    <a data-view="settings"><i>⚙</i> Settings</a>
+    <a data-view="about"><i>ℹ</i> About</a>
+    <button id="logoutBtn" class="dlogout">⎋ Sign out</button>
+    <div class="dfoot">Version 1.0</div>
+  </nav>
+
+  <!-- Main View Views Container -->
+  <main>
+
+    <!-- Dashboard View -->
+    <section id="v-dashboard" class="view">
+      <div class="hero">
+        <small id="hello">Welcome 👋</small>
+        <h2>Official letters,<br>ready in seconds.</h2>
+        <p>Select financial year, district, and Gram Panchayat. Generate Word documents or share directly via WhatsApp.</p>
+        <button class="cta" data-view="generate">Generate Cover Letter →</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><i>📦</i><div><b id="stD">–</b><span>Dispatch Records</span></div></div>
+        <div class="stat"><i>🗺</i><div><b id="stM">–</b><span>Mappings</span></div></div>
+        <div class="stat"><i>📅</i><div><b id="stY">–</b><span>Years Recorded</span></div></div>
+      </div>
+
+      <div class="tiles">
+        <button class="tile" data-view="generate">
+          <i>📄</i><b>Cover Letter</b>
+          <span>AMS · Cover Letter · Intimation</span>
+        </button>
+        <button class="tile" data-view="data">
+          <i>📊</i><b>Dispatch Data</b>
+          <span>Search, filter & export</span>
+        </button>
+        <button class="tile" data-view="upload" id="tileUpload">
+          <i>⬆</i><b>Upload Data</b>
+          <span>Admin configuration</span>
+        </button>
+        <button class="tile soon" data-view="ats">
+          <span class="badge">Soon</span>
+          <i>🤖</i><b>ATS Generate</b>
+          <span>AI ATS resume engine</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Cover Letter Generator View -->
+    <section id="v-generate" class="view">
+      <div class="card">
+        <div class="ch">
+          <i>📄</i>
+          <div>
+            <h2>Cover Letter Generator</h2>
+            <p>Select report specification and target region</p>
+          </div>
+        </div>
+
+        <div id="indexBanner"></div>
+
+        <div class="lab" style="font-size: 0.88rem; font-weight:600; color:var(--text-muted); margin-bottom: 8px;">Report Type</div>
+        <div class="rtypes" id="rtypes">
+          <button class="on" data-t="ams"><i>📑</i> AMS Report</button>
+          <button data-t="ybc"><i>📘</i> Cover Letter</button>
+          <button data-t="intim"><i>📨</i> Intimation Report</button>
+        </div>
+
+        <label><span class="step">1</span> Year <select id="year"></select></label>
+
+        <div id="letterSel">
+          <label><span class="step">2</span> District <select id="dist"></select></label>
+          <label><span class="step">3</span> Panchayat Samiti <select id="ps"></select></label>
+          <label><span class="step">4</span> Gram Panchayat <select id="gp"></select></label>
+        </div>
+
+        <div id="amsBox" hidden>
+          <div class="lab" style="margin-top: 16px;"><span class="step">2</span> Panchayat Samiti — Select items to create Watch List</div>
+          <input id="amsSearch" type="search" placeholder="🔍 Search Panchayat Samiti..." autocomplete="off">
+          <div class="wl-bar" style="margin: 10px 0; display:flex; gap:10px; align-items:center;">
+            <button type="button" id="amsAll" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border-color); background:rgba(255,255,255,0.05); color:#fff; cursor:pointer;">Select All</button>
+            <button type="button" id="amsNone" style="padding:6px 12px; border-radius:8px; border:1px solid var(--border-color); background:rgba(255,255,255,0.05); color:#fff; cursor:pointer;">Deselect All</button>
+            <span id="amsCount" class="muted" style="font-size:0.8rem; color:var(--text-muted);"></span>
+          </div>
+          <div id="amsPs" class="checks" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding:10px; border-radius:10px;"></div>
+          <button type="button" id="amsSave" class="primary" style="margin-top: 10px;">💾 Save Watch List</button>
+
+          <div class="lab" style="margin-top: 18px;"><span class="step">3</span> ⭐ Saved Watch Lists</div>
+          <div id="amsSaved" class="wl-saved"></div>
+
+          <div class="lab" style="margin-top: 18px;"><span class="step">4</span> PS inclusion mode in total count</div>
+          <div class="seg" id="amsMode" style="display:flex; gap:10px; margin-top:8px;">
+            <button type="button" class="on" data-m="1" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:rgba(99,102,241,0.2); color:#fff; cursor:pointer;">With PS</button>
+            <button type="button" data-m="2" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:rgba(255,255,255,0.05); color:var(--text-muted); cursor:pointer;">Without PS</button>
+          </div>
+          <p class="muted" style="font-size:.78rem; color:var(--text-muted); margin:8px 0 0">
+            <strong>With PS:</strong> Includes Panchayat Samiti row in summary totals. <strong>Without PS:</strong> Gram Panchayat rows only.
+          </p>
+        </div>
+
+        <div id="info" class="info"></div>
+        <div id="warn" class="warn"></div>
+        <div id="rowsPreview"></div>
+
+        <button id="genBtn" class="primary big">Generate Cover Letter</button>
+
+        <div id="result" class="result" hidden>
+          <div class="ok">✓</div>
+          <b>File Generated Successfully</b>
+          <small id="rname" style="display:block; margin-top:4px; color:var(--text-muted);"></small>
+          <div class="row">
+            <button id="dlBtn" class="primary">⬇ Download Word File</button>
+            <button id="waBtn" class="wa">Share on WhatsApp</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dispatch Data Search & Filter View -->
+    <section id="v-data" class="view">
+      <div class="card">
+        <div class="ch">
+          <i>📊</i>
+          <div>
+            <h2>Dispatch Data</h2>
+            <p>Search, filter, and review recorded dispatch items</p>
+          </div>
+        </div>
+        <div class="filters" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <select id="fYear"></select>
+          <select id="fDist"></select>
+          <select id="fPs"></select>
+          <select id="fStatus"></select>
+          <input id="fSearch" placeholder="🔍 Search GP / Dispatch Number...">
+        </div>
+        <div id="dataOut"></div>
+      </div>
+    </section>
+
+    <!-- Upload Data View (Admin Only) -->
+    <section id="v-upload" class="view">
+      <div class="card">
+        <div class="ch">
+          <i>⬆</i>
+          <div>
+            <h2>Upload Dispatch File</h2>
+            <p>Admin configuration · Synchronize with Cloud Database</p>
+          </div>
+        </div>
+        <p id="noAdmin" class="muted" style="color:var(--text-muted);">🔒 Only authorized administrator accounts can modify dispatch records.</p>
+        <div id="upBox" hidden>
+          <label>Target Financial Year <select id="upYear"></select></label>
+          <label>Select Dispatch Spreadsheet (.xlsx) <input type="file" id="file" accept=".xlsx"></label>
+          <div id="fileInfo" class="info"></div>
+          <div id="preview" class="scroll"></div>
+          <div class="row" style="display:flex; gap:12px; margin: 16px 0;">
+            <button id="prevBtn" disabled style="padding:10px 18px; border-radius:10px; border:1px solid var(--border-color); background:rgba(255,255,255,0.05); color:#fff; cursor:pointer;">👁 Preview Data</button>
+            <button id="upBtn" class="primary" disabled>Upload / Update Database</button>
+          </div>
+          <div id="upRes" class="info"></div>
+          <hr style="border-color:var(--border-color); margin: 24px 0;">
+          <h3>Region Mapping File (English / Hindi)</h3>
+          <p class="muted" style="font-size:0.8rem; color:var(--text-muted); margin: 6px 0 14px;">Required columns: GP_EN, GP_HI, PS_EN, PS_HI, DIST_EN, DIST_HI</p>
+          <label>Mapping File (.xlsx) <input type="file" id="mFile" accept=".xlsx"></label>
+          <div id="mInfo" class="info"></div>
+          <button id="mBtn" class="primary big" disabled>Upload Mapping to Cloud</button>
+          <div id="mRes" class="info"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ATS Generator Placeholder View -->
+    <section id="v-ats" class="view">
+      <div class="card center">
+        <div class="logo xl">🤖</div>
+        <h2>ATS Generator Engine</h2>
+        <span class="chip">Coming Soon</span>
+        <p class="muted" style="color:var(--text-muted); margin-top:12px;">This automated ATS resume and document module will be enabled in a future system update.</p>
+      </div>
+    </section>
+
+    <!-- Settings View -->
+    <section id="v-settings" class="view">
+      <div class="card">
+        <div class="ch">
+          <i>⚙</i>
+          <div>
+            <h2>System Settings</h2>
+            <p>Data caching and local synchronization</p>
+          </div>
+        </div>
+        <p class="muted" style="color:var(--text-muted); font-size:0.9rem; line-height:1.6; margin-bottom: 20px;">
+          On initial load, only a lightweight metadata index is retrieved. Specific Panchayat Samiti records are fetched on demand and cached locally for 12 hours. If new data was uploaded by another user, click below to force a complete database re-synchronization.
+        </p>
+        <button id="reloadBtn" class="primary">🔄 Sync &amp; Reload Data</button>
+      </div>
+    </section>
+
+    <!-- About View -->
+    <section id="v-about" class="view">
+      <div class="card center">
+        <div class="logo xl">✉</div>
+        <h2>Cover Letter Generator</h2>
+        <p class="muted" style="color:var(--text-muted); margin: 10px 0;">An enterprise platform for generating official covering letters from centralized dispatch datasets.</p>
+        <span class="chip">Version 1.0</span>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="toasts"></div>
+
+  <!-- Fallback Script Handler -->
+  <script>
+    (function(){
+      var b = document.getElementById('gBtn'), l = document.getElementById('lerr');
+      b.onclick = function() {
+        l.textContent = 'App failed to load. Please verify script paths (app.js, js/ folder, firebase-config.js) and hard refresh the page.';
+      };
+      window.addEventListener('error', function(e) {
+        l.textContent = 'Error: ' + (e.message || 'Asset loading failure');
+      });
+    })();
+  </script>
+
+  <!-- Application Bundle -->
+  <script type="module" src="app.js" onerror="document.getElementById('lerr').textContent='Failed to load app.js - check file name and path.'"></script>
+</body>
+</html>
